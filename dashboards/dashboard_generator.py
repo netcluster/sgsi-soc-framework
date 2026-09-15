@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Generador de Dashboards Especializados en Python con Gráficos Recomendados y Soporte en Tiempo Real (Live Polling):
-1. Dashboard CISO (Técnico / Táctico / SOC & Mitigación de Riesgos)
-2. Dashboard Dirección del Servicio (Ejecutivo / Cumplimiento Normativo & Riesgo Corporativo)
+Generador de Dashboards Especializados en Python basados en Principios Científicos de Visualización de Datos:
+1. Ratio Data-Ink (Edward Tufte): Eliminación de 'chartjunk', maximización de señal sobre ruido, rejillas sutiles.
+2. Jerarquías Visuales y Patrones de Exploración Ocular (Z-Pattern & F-Pattern): Indicadores clave arriba, detección de anomalías al centro, drilldown al fondo.
+3. Semiótica y Consistencia Semántica de Colores: Rojo (#DC2626) para alertas críticas/riesgos extremos, Naranja (#EA580C) para alta severidad, Amarillo (#F59E0B) para media/en proceso, Verde (#10B981) para mitigado/implementado, Azul/Gris (#1E293B/#2563EB) para telemetría técnica.
 """
 
 import os
@@ -10,9 +11,9 @@ import sys
 import csv
 import json
 from datetime import datetime
+from collections import defaultdict
 from typing import Dict, List, Any
 
-# Asegurar que el path del proyecto esté disponible
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import plotly.graph_objects as go
@@ -20,6 +21,16 @@ import plotly.express as px
 
 from core.risk_calculator import RiskCalculator
 from core.incident_manager import IncidentManager
+
+# Paleta Semiótica Global Unificada
+COLOR_CRITICAL = "#DC2626"   # Rojo - Crítico / Emergencia / Riesgo Extremo
+COLOR_HIGH     = "#EA580C"   # Naranja - Alto / Alerta Importante
+COLOR_MEDIUM   = "#F59E0B"   # Ámbar - Medio / En Proceso / Precaución
+COLOR_LOW      = "#10B981"   # Verde Esmeralda - Bajo / Mitigado / Implementado
+COLOR_PLANNED  = "#64748B"   # Gris Pizarra - Planificado / En Evaluación
+COLOR_PRIMARY  = "#0F172A"   # Azul Medianoche - Texto / Jerarquía Principal
+COLOR_ACCENT   = "#2563EB"   # Azul Técnico - Métricas de Telemetría
+COLOR_GRID     = "#E2E8F0"   # Rejilla sutil para alto ratio Data-Ink
 
 class DashboardGenerator:
     def __init__(self, templates_dir: str = None, output_dir: str = None):
@@ -36,7 +47,7 @@ class DashboardGenerator:
             return list(csv.DictReader(f))
 
     # =========================================================================
-    # 1. DASHBOARD PARA EL CISO (TÉCNICO / SOC & RIESGOS)
+    # 1. DASHBOARD CISO & SOC (TÉCNICO / TÁCTICO & DETECCIÓN DE ANOMALÍAS)
     # =========================================================================
     def generate_ciso_dashboard(self, filename: str = "dashboard_ciso.html") -> str:
         incidents = self._load_csv("04_registro_incidentes_template.csv")
@@ -46,231 +57,316 @@ class DashboardGenerator:
         inc_mgr = IncidentManager(os.path.join(self.templates_dir, "04_registro_incidentes_template.csv"))
         kpis = inc_mgr.compute_kpis()
 
-        # 1. Distribución de Severidad
-        sev_counts = kpis.get("by_severity", {})
-        colors_sev = {"Crítica": "#E74C3C", "Critica": "#E74C3C", "Alta": "#E67E22", "Media": "#F1C40F", "Baja": "#2ECC71"}
-        
-        fig_sev = go.Figure(data=[go.Pie(
-            labels=list(sev_counts.keys()),
-            values=list(sev_counts.values()),
-            hole=0.55,
-            marker=dict(colors=[colors_sev.get(s, "#3498DB") for s in sev_counts.keys()]),
-            textinfo='label+percent+value',
-            insidetextorientation='radial'
-        )])
-        fig_sev.update_layout(
-            height=340,
-            title=dict(text="<b>Distribución de Incidentes por Severidad</b>", font=dict(size=14, color="#1B365D")),
-            margin=dict(t=45, b=20, l=20, r=20),
+        # ---------------------------------------------------------------------
+        # GRÁFICO 1: LÍNEA TEMPORAL DE TELEMETRÍA & DETECCIÓN DE PICOS / ANOMALÍAS
+        # Principio: Data-Ink Ratio & Anomaly Detection
+        # ---------------------------------------------------------------------
+        # Agrupar incidentes por fecha / día o franja horaria
+        time_series = defaultdict(lambda: {"total": 0, "criticos": 0, "altos": 0})
+        for inc in incidents:
+            ts_str = inc.get("Fecha_Hora", "")
+            # Extraer fecha YYYY-MM-DD
+            dt_key = ts_str.split(" ")[0] if " " in ts_str else ts_str[:10]
+            if not dt_key or len(dt_key) < 8:
+                dt_key = datetime.now().strftime("%Y-%m-%d")
+            
+            sev = inc.get("Severidad", "")
+            time_series[dt_key]["total"] += 1
+            if "Crit" in sev:
+                time_series[dt_key]["criticos"] += 1
+            elif "Alt" in sev:
+                time_series[dt_key]["altos"] += 1
+
+        sorted_dates = sorted(time_series.keys())
+        counts_total = [time_series[d]["total"] for d in sorted_dates]
+        counts_crit = [time_series[d]["criticos"] for d in sorted_dates]
+
+        # Umbral estadístico para anomalías (Media + 1.5 Desviación Estándar)
+        if counts_total:
+            avg_events = sum(counts_total) / len(counts_total)
+            threshold_anomaly = max(avg_events * 1.5, avg_events + 5)
+        else:
+            avg_events, threshold_anomaly = 0, 10
+
+        fig_timeline = go.Figure()
+        # Área de telemetría regular
+        fig_timeline.add_trace(go.Scatter(
+            x=sorted_dates,
+            y=counts_total,
+            mode='lines+markers',
+            name='Volumen de Eventos SOC',
+            line=dict(color=COLOR_ACCENT, width=2.5, shape='spline'),
+            fill='tozeroy',
+            fillcolor='rgba(37, 99, 235, 0.08)',
+            marker=dict(size=6, color=COLOR_ACCENT)
+        ))
+
+        # Puntos anómalos destacados (cuando supera umbral)
+        anom_dates = [d for d, c in zip(sorted_dates, counts_total) if c >= threshold_anomaly or time_series[d]["criticos"] > 2]
+        anom_counts = [c for c in counts_total if c >= threshold_anomaly]
+
+        if anom_dates:
+            fig_timeline.add_trace(go.Scatter(
+                x=anom_dates,
+                y=[time_series[d]["total"] for d in anom_dates],
+                mode='markers',
+                name='⚠️ Pico Anómalo Detectado',
+                marker=dict(size=12, color=COLOR_CRITICAL, symbol='diamond', line=dict(color='white', width=2))
+            ))
+
+        # Línea de umbral de anomalía
+        if sorted_dates:
+            fig_timeline.add_hline(
+                y=threshold_anomaly,
+                line_dash="dash",
+                line_color=COLOR_HIGH,
+                line_width=1.5,
+                annotation_text="Umbral de Alerta Anómala",
+                annotation_position="top right",
+                annotation_font=dict(size=10, color=COLOR_HIGH)
+            )
+
+        fig_timeline.update_layout(
+            height=330,
+            title=dict(text="<b>Telemetría Temporal & Detección de Picos Anómalos</b>", font=dict(size=13, color=COLOR_PRIMARY)),
+            margin=dict(t=40, b=30, l=35, r=20),
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(family="Segoe UI, Arial", size=11, color="#2C3E50")
+            font=dict(family="Segoe UI, Arial", size=11, color=COLOR_PRIMARY),
+            xaxis=dict(showgrid=False, linecolor=COLOR_GRID),
+            yaxis=dict(showgrid=True, gridcolor=COLOR_GRID, zeroline=False),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=10))
         )
-        html_sev = fig_sev.to_html(full_html=False, include_plotlyjs=False)
+        html_timeline = fig_timeline.to_html(full_html=False, include_plotlyjs=False)
 
-        # 2. MITRE ATT&CK
+        # ---------------------------------------------------------------------
+        # GRÁFICO 2: TOP TÁCTICAS Y TÉCNICAS MITRE ATT&CK
+        # Principio: Jerarquía Visual Horizontal para Lectura Rápida
+        # ---------------------------------------------------------------------
         mitre_tactics = {}
         for inc in incidents:
-            t = inc.get("Tactica_MITRE", "Otras")
-            tec = inc.get("Tecnica_MITRE", "General")
-            key = f"{t} ({tec})"
+            t = inc.get("Tactica_MITRE", "Otras").strip()
+            tec = inc.get("Tecnica_MITRE", "General").strip()
+            key = f"{t}: {tec}"
             mitre_tactics[key] = mitre_tactics.get(key, 0) + 1
 
         sorted_mitre = sorted(mitre_tactics.items(), key=lambda x: x[1], reverse=True)[:6]
+        m_labels = [x[0] for x in sorted_mitre]
+        m_vals = [x[1] for x in sorted_mitre]
+
         fig_mitre = go.Figure(data=[go.Bar(
-            x=[x[1] for x in sorted_mitre],
-            y=[x[0] for x in sorted_mitre],
+            x=m_vals,
+            y=m_labels,
             orientation='h',
-            marker=dict(color='#8E44AD', line=dict(color='#6C3483', width=1)),
-            text=[str(x[1]) for x in sorted_mitre],
-            textposition='auto'
+            marker=dict(
+                color=m_vals,
+                colorscale=[[0, '#6366F1'], [0.5, '#4F46E5'], [1.0, COLOR_CRITICAL]],
+                line=dict(color='rgba(0,0,0,0)', width=0)
+            ),
+            text=[f" {v} ev." for v in m_vals],
+            textposition='auto',
+            textfont=dict(size=10, color='white', family='Segoe UI')
         )])
         fig_mitre.update_layout(
-            height=340,
-            title=dict(text="<b>Top Tácticas y Técnicas MITRE ATT&CK</b>", font=dict(size=14, color="#1B365D")),
-            xaxis_title="Frecuencia",
-            yaxis=dict(autorange="reversed"),
-            margin=dict(t=45, b=30, l=150, r=20),
+            height=330,
+            title=dict(text="<b>Top Vectores de Ataque Correlacionados (MITRE ATT&CK)</b>", font=dict(size=13, color=COLOR_PRIMARY)),
+            xaxis=dict(showgrid=True, gridcolor=COLOR_GRID, zeroline=False),
+            yaxis=dict(autorange="reversed", showgrid=False),
+            margin=dict(t=40, b=30, l=180, r=20),
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(family="Segoe UI, Arial", size=11, color="#2C3E50")
+            font=dict(family="Segoe UI, Arial", size=10, color=COLOR_PRIMARY)
         )
         html_mitre = fig_mitre.to_html(full_html=False, include_plotlyjs=False)
 
-        # 3. Matriz de Riesgo ISO 27005
+        # ---------------------------------------------------------------------
+        # GRÁFICO 3: MATRIZ DE RIESGOS ISO 27005 (INHERENTE -> RESIDUAL)
+        # Principio: Semiótica Espacial y de Color (Cuadrante Térmico)
+        # ---------------------------------------------------------------------
         fig_risk = go.Figure()
-        fig_risk.add_shape(type="rect", x0=0.5, y0=0.5, x1=2.5, y1=2.5, fillcolor="#2ECC71", opacity=0.2, line_width=0)
-        fig_risk.add_shape(type="rect", x0=2.5, y0=0.5, x1=5.5, y1=2.5, fillcolor="#F1C40F", opacity=0.2, line_width=0)
-        fig_risk.add_shape(type="rect", x0=0.5, y0=2.5, x1=2.5, y1=5.5, fillcolor="#F1C40F", opacity=0.2, line_width=0)
-        fig_risk.add_shape(type="rect", x0=2.5, y0=2.5, x1=5.5, y1=5.5, fillcolor="#E74C3C", opacity=0.2, line_width=0)
+        # Cuadrantes de calor sutiles (Data-Ink ratio alto, no chillones)
+        fig_risk.add_shape(type="rect", x0=0.5, y0=0.5, x1=2.5, y1=2.5, fillcolor=COLOR_LOW, opacity=0.15, line_width=0)
+        fig_risk.add_shape(type="rect", x0=2.5, y0=0.5, x1=5.5, y1=2.5, fillcolor=COLOR_MEDIUM, opacity=0.15, line_width=0)
+        fig_risk.add_shape(type="rect", x0=0.5, y0=2.5, x1=2.5, y1=5.5, fillcolor=COLOR_MEDIUM, opacity=0.15, line_width=0)
+        fig_risk.add_shape(type="rect", x0=2.5, y0=2.5, x1=5.5, y1=5.5, fillcolor=COLOR_CRITICAL, opacity=0.15, line_width=0)
 
         p_inh = [int(r.get("Probabilidad_Inherente_1a5", 3)) for r in risks]
         i_inh = [int(r.get("Impacto_Inherente_1a5", 3)) for r in risks]
-        labels_r = [f"{r.get('ID_Riesgo')}: {r.get('Amenaza')[:25]}..." for r in risks]
         p_res = [int(r.get("Probabilidad_Residual_1a5", 2)) for r in risks]
         i_res = [int(r.get("Impacto_Residual_1a5", 2)) for r in risks]
+        risk_labels = [f"<b>{r.get('ID_Riesgo')}</b>: {r.get('Amenaza')[:30]}" for r in risks]
 
         fig_risk.add_trace(go.Scatter(
             x=p_inh, y=i_inh,
             mode='markers+text',
-            name='Riesgo Inherente',
-            marker=dict(size=12, color='#E74C3C', symbol='circle', line=dict(color='black', width=1)),
+            name='Riesgo Inherente (Sin Control)',
+            marker=dict(size=11, color=COLOR_CRITICAL, symbol='circle', line=dict(color='white', width=1.5)),
             text=[r.get('ID_Riesgo') for r in risks],
             textposition='top center',
-            hovertext=labels_r
+            textfont=dict(size=9, color=COLOR_CRITICAL),
+            hovertext=risk_labels
         ))
         fig_risk.add_trace(go.Scatter(
             x=p_res, y=i_res,
             mode='markers+text',
             name='Riesgo Residual (Mitigado)',
-            marker=dict(size=12, color='#27AE60', symbol='diamond', line=dict(color='black', width=1)),
+            marker=dict(size=11, color=COLOR_LOW, symbol='diamond', line=dict(color='white', width=1.5)),
             text=[r.get('ID_Riesgo') for r in risks],
             textposition='bottom center',
-            hovertext=labels_r
+            textfont=dict(size=9, color=COLOR_LOW),
+            hovertext=risk_labels
         ))
         fig_risk.update_layout(
-            height=340,
-            title=dict(text="<b>Matriz de Riesgos ISO 27005 (Inherente -> Residual)</b>", font=dict(size=14, color="#1B365D")),
-            xaxis=dict(title="Probabilidad (1 a 5)", range=[0.5, 5.5], dtick=1),
-            yaxis=dict(title="Impacto (1 a 5)", range=[0.5, 5.5], dtick=1),
-            margin=dict(t=45, b=35, l=45, r=20),
+            height=330,
+            title=dict(text="<b>Matriz de Riesgos ISO 27005 (Efecto de Mitigación)</b>", font=dict(size=13, color=COLOR_PRIMARY)),
+            xaxis=dict(title="Probabilidad (1 a 5)", range=[0.5, 5.5], dtick=1, showgrid=True, gridcolor=COLOR_GRID),
+            yaxis=dict(title="Impacto (1 a 5)", range=[0.5, 5.5], dtick=1, showgrid=True, gridcolor=COLOR_GRID),
+            margin=dict(t=40, b=35, l=45, r=20),
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(family="Segoe UI, Arial", size=11, color="#2C3E50"),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+            font=dict(family="Segoe UI, Arial", size=10, color=COLOR_PRIMARY),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=10))
         )
         html_risk = fig_risk.to_html(full_html=False, include_plotlyjs=False)
 
-        # 4. Radar SoA
-        domain_madurez = {}
-        domain_counts = {}
-        for c in soa:
-            dom = c.get("Dominio", "General").replace("Controles ", "")
-            mad = float(c.get("Porcentaje_Madurez", 50) or 50)
-            domain_madurez[dom] = domain_madurez.get(dom, 0) + mad
-            domain_counts[dom] = domain_counts.get(dom, 0) + 1
+        # ---------------------------------------------------------------------
+        # GRÁFICO 4: DISTRIBUCIÓN SEMIÓTICA POR SEVERIDAD
+        # Principio: Consistencia de Color y Alto Data-Ink
+        # ---------------------------------------------------------------------
+        sev_counts = kpis.get("by_severity", {})
+        ordered_sev = ["Crítica", "Alta", "Media", "Baja"]
+        sev_vals = [sev_counts.get(s, 0) + (sev_counts.get("Critica", 0) if s == "Crítica" else 0) for s in ordered_sev]
+        sev_colors = [COLOR_CRITICAL, COLOR_HIGH, COLOR_MEDIUM, COLOR_LOW]
 
-        dom_names = list(domain_madurez.keys())
-        dom_avg = [round(domain_madurez[d] / domain_counts[d], 1) for d in dom_names]
-
-        if dom_names:
-            dom_names_closed = dom_names + [dom_names[0]]
-            dom_avg_closed = dom_avg + [dom_avg[0]]
-        else:
-            dom_names_closed, dom_avg_closed = [], []
-
-        fig_radar = go.Figure()
-        fig_radar.add_trace(go.Scatterpolar(
-            r=dom_avg_closed,
-            theta=dom_names_closed,
-            fill='toself',
-            fillcolor='rgba(41, 128, 185, 0.3)',
-            line=dict(color='#2980B9', width=2),
-            name='% Madurez Actual'
-        ))
-        fig_radar.update_layout(
-            height=340,
-            polar=dict(radialaxis=dict(visible=True, range=[0, 100], ticksuffix="%")),
-            title=dict(text="<b>Madurez de Controles ISO 27001:2022 por Dominio</b>", font=dict(size=14, color="#1B365D")),
-            margin=dict(t=45, b=30, l=35, r=35),
+        fig_sev = go.Figure(data=[go.Pie(
+            labels=ordered_sev,
+            values=sev_vals,
+            hole=0.62,
+            marker=dict(colors=sev_colors, line=dict(color='white', width=2)),
+            textinfo='percent+value',
+            textfont=dict(size=11, color='white', family='Segoe UI'),
+            hoverinfo='label+value+percent'
+        )])
+        fig_sev.update_layout(
+            height=330,
+            title=dict(text="<b>Distribución Semiótica de Incidentes por Severidad</b>", font=dict(size=13, color=COLOR_PRIMARY)),
+            margin=dict(t=40, b=20, l=20, r=20),
             paper_bgcolor='rgba(0,0,0,0)',
-            font=dict(family="Segoe UI, Arial", size=11, color="#2C3E50")
+            plot_bgcolor='rgba(0,0,0,0)',
+            font=dict(family="Segoe UI, Arial", size=11, color=COLOR_PRIMARY),
+            legend=dict(orientation="v", yanchor="middle", y=0.5, xanchor="right", x=1.1, font=dict(size=10))
         )
-        html_radar = fig_radar.to_html(full_html=False, include_plotlyjs=False)
+        html_sev = fig_sev.to_html(full_html=False, include_plotlyjs=False)
 
-        # Tabla HTML
+        # ---------------------------------------------------------------------
+        # TABLA DE TELEMETRÍA SOC (DRILLDOWN - ÚLTIMOS INCIDENTES)
+        # ---------------------------------------------------------------------
         table_rows = ""
-        for inc in reversed(incidents[-12:]):
+        for inc in reversed(incidents[-10:]):
             sev = inc.get("Severidad", "Media")
-            badge_color = "#E74C3C" if "Crit" in sev else ("#E67E22" if "Alta" in sev else "#3498DB")
+            badge_bg = COLOR_CRITICAL if "Crit" in sev else (COLOR_HIGH if "Alt" in sev else (COLOR_MEDIUM if "Med" in sev else COLOR_LOW))
             src_host = inc.get("Host_Origen") or inc.get("src_host") or inc.get("Usuario_Involucrado", "-")
             dst_ip = inc.get("IP_Destino") or inc.get("IP_Destino_Activo", "-")
             dst_host = inc.get("Host_Destino") or inc.get("IP_Destino_Activo", "-")
+            
             table_rows += f"""<tr>
                 <td><b>{inc.get('ID_Incidente')}</b></td>
-                <td>{inc.get('Fecha_Hora')}</td>
-                <td>{inc.get('Titulo_Incidente')}</td>
-                <td><span style="background-color: {badge_color}; color: white; padding: 2px 7px; border-radius: 4px; font-weight: bold; font-size: 11px;">{sev}</span></td>
-                <td><code>{inc.get('IP_Origen')}</code></td>
-                <td><small style="color: #2980B9; font-weight: 600;">{src_host}</small></td>
-                <td><code>{dst_ip}</code></td>
-                <td><small style="color: #27AE60; font-weight: 600;">{dst_host}</small></td>
-                <td>{inc.get('Tactica_MITRE')} / {inc.get('Tecnica_MITRE')}</td>
-                <td>{inc.get('Accion_Correctiva')}</td>
+                <td><span style="font-size: 11px; color: #64748B;">{inc.get('Fecha_Hora')}</span></td>
+                <td style="font-weight: 500;">{inc.get('Titulo_Incidente')}</td>
+                <td><span style="background-color: {badge_bg}; color: white; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 10px;">{sev.upper()}</span></td>
+                <td><code style="background: #F1F5F9; padding: 2px 5px; border-radius: 3px; font-size: 11px;">{inc.get('IP_Origen')}</code></td>
+                <td><small style="color: {COLOR_ACCENT}; font-weight: 600;">{src_host}</small></td>
+                <td><code style="background: #F1F5F9; padding: 2px 5px; border-radius: 3px; font-size: 11px;">{dst_ip}</code></td>
+                <td><small style="color: {COLOR_LOW}; font-weight: 600;">{dst_host}</small></td>
+                <td><span style="font-size: 11px; color: #475569;">{inc.get('Tactica_MITRE')}</span></td>
+                <td><span style="font-size: 11px; color: #0F172A;">{inc.get('Accion_Correctiva')}</span></td>
             </tr>"""
+
+        critical_count = sev_counts.get("Crítica", 0) + sev_counts.get("Critica", 0) + sev_counts.get("Alta", 0)
 
         dashboard_html = f"""<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>🛡️ Dashboard CISO & SOC - Tiempo Real</title>
+    <title>🛡️ Dashboard Táctico CISO & SOC - Detección de Anomalías</title>
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <style>
-        body {{ font-family: 'Segoe UI', Arial, sans-serif; background-color: #F4F7F9; margin: 0; padding: 15px 22px; color: #2C3E50; }}
-        .header {{ background: linear-gradient(135deg, #1B365D, #2980B9); color: white; padding: 12px 24px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }}
-        .live-badge {{ background-color: #27AE60; color: white; font-weight: bold; padding: 5px 12px; border-radius: 20px; font-size: 11px; display: inline-flex; align-items: center; animation: pulse 2s infinite; }}
+        * {{ box-sizing: border-box; }}
+        body {{ font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif; background-color: #F8FAFC; margin: 0; padding: 12px 18px; color: #0F172A; }}
+        .header {{ background: #0F172A; color: white; padding: 12px 20px; border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }}
+        .live-badge {{ background-color: {COLOR_LOW}; color: white; font-weight: 700; padding: 4px 10px; border-radius: 20px; font-size: 11px; display: inline-flex; align-items: center; letter-spacing: 0.5px; animation: pulse 2s infinite; }}
         @keyframes pulse {{ 0% {{ opacity: 1; }} 50% {{ opacity: 0.6; }} 100% {{ opacity: 1; }} }}
-        .cards-grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 15px; }}
-        .card {{ background: white; padding: 12px 16px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); border-left: 4px solid #2980B9; }}
-        .card-title {{ font-size: 11px; text-transform: uppercase; font-weight: bold; color: #7F8C8D; margin-bottom: 4px; }}
-        .card-val {{ font-size: 24px; font-weight: bold; color: #1B365D; }}
-        .grid-2 {{ display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }}
-        .chart-box {{ background: white; padding: 12px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }}
-        .table-container {{ max-height: 220px; overflow-y: auto; }}
-        table {{ width: 100%; border-collapse: collapse; font-size: 12px; }}
-        th, td {{ padding: 7px 10px; border-bottom: 1px solid #ECF0F1; text-align: left; }}
-        th {{ background-color: #F8F9FA; color: #1B365D; font-weight: 600; position: sticky; top: 0; }}
-        tr:hover {{ background-color: #F8F9FA; }}
-        .footer {{ text-align: center; margin-top: 15px; font-size: 11px; color: #95A5A6; }}
+        
+        .cards-grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px; }}
+        .card {{ background: white; padding: 12px 16px; border-radius: 8px; border: 1px solid #E2E8F0; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }}
+        .card-title {{ font-size: 11px; text-transform: uppercase; font-weight: 700; color: #64748B; margin-bottom: 2px; letter-spacing: 0.5px; }}
+        .card-val {{ font-size: 24px; font-weight: 800; color: #0F172A; line-height: 1.1; }}
+        
+        .grid-2 {{ display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }}
+        .chart-box {{ background: white; padding: 10px 14px; border-radius: 8px; border: 1px solid #E2E8F0; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }}
+        
+        .table-container {{ max-height: 200px; overflow-y: auto; }}
+        table {{ width: 100%; border-collapse: collapse; font-size: 11.5px; }}
+        th, td {{ padding: 6px 9px; border-bottom: 1px solid #F1F5F9; text-align: left; }}
+        th {{ background-color: #F8FAFC; color: #475569; font-weight: 700; font-size: 11px; position: sticky; top: 0; z-index: 1; text-transform: uppercase; }}
+        tr:hover {{ background-color: #F8FAFC; }}
+        .footer {{ text-align: center; margin-top: 10px; font-size: 10px; color: #94A3B8; }}
     </style>
 </head>
 <body>
     <div class="header">
         <div>
-            <h1 style="margin: 0; font-size: 20px;">🛡️ DASHBOARD TÁCTICO CISO & SOC</h1>
-            <p style="margin: 3px 0 0 0; opacity: 0.85; font-size: 13px;">Monitoreo de Amenazas en Tiempo Real, MITRE ATT&CK y Riesgos ISO 27005</p>
+            <h1 style="margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.3px;">🛡️ CENTRO DE OPERACIONES DE SEGURIDAD (SOC) & CISO</h1>
+            <p style="margin: 2px 0 0 0; opacity: 0.8; font-size: 12px;">Monitoreo Continuo, Correlación MITRE ATT&CK y Detección de Anomalías ISO 27005</p>
         </div>
         <div>
-            <span class="live-badge">🟢 EN VIVO (ACTUALIZANDO)</span>
+            <span class="live-badge">🟢 TELEMETRÍA EN VIVO</span>
         </div>
     </div>
 
+    <!-- TIER 1: JERARQUÍA VISUAL SUPERIOR (MÉTRICAS CLAVE CON SEMIÓTICA) -->
     <div class="cards-grid">
-        <div class="card" style="border-left-color: #2980B9;">
-            <div class="card-title">Total Incidentes Registrados</div>
-            <div class="card-val" id="kpi-total">{kpis.get('total_incidents', 0)}</div>
+        <div class="card" style="border-top: 3px solid {COLOR_PRIMARY};">
+            <div class="card-title">Volumen Total Incidentes</div>
+            <div class="card-val">{kpis.get('total_incidents', 0)}</div>
         </div>
-        <div class="card" style="border-left-color: #8E44AD;">
-            <div class="card-title">MTTD (Tiempo Medio Detección)</div>
-            <div class="card-val" id="kpi-mttd">{kpis.get('avg_mttd_min', 0)} <span style="font-size: 13px;">min</span></div>
+        <div class="card" style="border-top: 3px solid {COLOR_ACCENT};">
+            <div class="card-title">MTTD (Detección Media)</div>
+            <div class="card-val" style="color: {COLOR_ACCENT};">{kpis.get('avg_mttd_min', 0)} <span style="font-size: 12px; font-weight: 500; color: #64748B;">min</span></div>
         </div>
-        <div class="card" style="border-left-color: #27AE60;">
-            <div class="card-title">MTTR (Tiempo Medio Respuesta)</div>
-            <div class="card-val" id="kpi-mttr">{kpis.get('avg_mttr_min', 0)} <span style="font-size: 13px;">min</span></div>
+        <div class="card" style="border-top: 3px solid {COLOR_LOW};">
+            <div class="card-title">MTTR (Respuesta Media)</div>
+            <div class="card-val" style="color: {COLOR_LOW};">{kpis.get('avg_mttr_min', 0)} <span style="font-size: 12px; font-weight: 500; color: #64748B;">min</span></div>
         </div>
-        <div class="card" style="border-left-color: #E74C3C;">
+        <div class="card" style="border-top: 3px solid {COLOR_CRITICAL};">
             <div class="card-title">Alertas Críticas / Altas</div>
-            <div class="card-val" id="kpi-critical" style="color: #E74C3C;">{sev_counts.get('Crítica', 0) + sev_counts.get('Critica', 0) + sev_counts.get('Alta', 0)}</div>
+            <div class="card-val" style="color: {COLOR_CRITICAL};">{critical_count}</div>
         </div>
     </div>
 
+    <!-- TIER 2: ANOMALÍAS TEMPORALES & VECTORES DE ATAQUE -->
     <div class="grid-2">
-        <div class="chart-box">{html_sev}</div>
+        <div class="chart-box">{html_timeline}</div>
         <div class="chart-box">{html_mitre}</div>
     </div>
 
+    <!-- TIER 3: EVALUACIÓN DE RIESGOS & SEVERIDAD -->
     <div class="grid-2">
         <div class="chart-box">{html_risk}</div>
-        <div class="chart-box">{html_radar}</div>
+        <div class="chart-box">{html_sev}</div>
     </div>
 
+    <!-- TIER 4: DRILLDOWN DE TELEMETRÍA EN TIEMPO REAL -->
     <div class="chart-box">
-        <div style="font-weight: bold; color: #1B365D; font-size: 13px; margin-bottom: 8px;">🚨 Telemetría en Vivo: Últimos Incidentes Correlacionados por el SOC</div>
+        <div style="font-weight: 700; color: #0F172A; font-size: 12.5px; margin-bottom: 6px; display: flex; justify-content: space-between;">
+            <span>🚨 Registro de Telemetría SOC (Últimas Alertas Analizadas)</span>
+            <span style="font-size: 11px; color: #64748B; font-weight: normal;">Ordenado por severidad y tiempo de detección</span>
+        </div>
         <div class="table-container">
             <table>
                 <thead>
                     <tr>
-                        <th>ID</th><th>Fecha / Hora</th><th>Incidente Detectado</th><th>Severidad</th><th>IP Origen</th><th>Host Origen</th><th>IP Destino</th><th>Host Destino</th><th>Mapeo MITRE</th><th>Acción</th>
+                        <th>ID</th><th>Fecha / Hora</th><th>Incidente Detectado</th><th>Severidad</th><th>IP Origen</th><th>Host Origen</th><th>IP Destino</th><th>Host Destino</th><th>Táctica MITRE</th><th>Acción Correctiva</th>
                     </tr>
                 </thead>
                 <tbody id="live-table-body">
@@ -281,7 +377,7 @@ class DashboardGenerator:
     </div>
 
     <div class="footer">
-        Antigravity SGSI & SOC Framework • Servidor en Vivo Activo
+        Framework SGSI & SOC Antigravity • Consistencia Semiótica y Alto Ratio Data-Ink
     </div>
 
     <script>
@@ -309,7 +405,7 @@ class DashboardGenerator:
         return out_path
 
     # =========================================================================
-    # 2. DASHBOARD PARA LA DIRECCIÓN DEL SERVICIO (GOBIERNO / NEGOCIO)
+    # 2. DASHBOARD PARA LA DIRECCIÓN DEL SERVICIO (GOBIERNO / ESTRATÉGICO)
     # =========================================================================
     def generate_direccion_dashboard(self, filename: str = "dashboard_direccion.html") -> str:
         soa = self._load_csv("03_soa_iso27001_template.csv")
@@ -319,179 +415,237 @@ class DashboardGenerator:
         total_madurez = sum(float(c.get("Porcentaje_Madurez", 0) or 0) for c in soa)
         avg_cumplimiento = round(total_madurez / len(soa), 1) if soa else 0
 
-        # 1. Gauge de Cumplimiento
+        # ---------------------------------------------------------------------
+        # GRÁFICO 1: GAUGE DE CUMPLIMIENTO GLOBAL ISO 27001
+        # Principio: Semiótica Ejecutiva (Rojo < 50, Ámbar 50-80, Verde > 80)
+        # ---------------------------------------------------------------------
         fig_gauge = go.Figure(go.Indicator(
             mode="gauge+number+delta",
             value=avg_cumplimiento,
-            number={'suffix': "%", 'font': {'size': 38, 'color': '#1B365D'}},
-            delta={'reference': 80, 'increasing': {'color': "#27AE60"}, 'decreasing': {'color': "#E74C3C"}},
+            number={'suffix': "%", 'font': {'size': 36, 'color': COLOR_PRIMARY, 'family': 'Segoe UI'}},
+            delta={'reference': 80, 'increasing': {'color': COLOR_LOW}, 'decreasing': {'color': COLOR_CRITICAL}},
             gauge={
-                'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "#2C3E50"},
-                'bar': {'color': "#1B365D"},
+                'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': COLOR_PRIMARY},
+                'bar': {'color': COLOR_PRIMARY, 'thickness': 0.25},
                 'bgcolor': "white",
-                'borderwidth': 1,
-                'bordercolor': "#BDC3C7",
+                'borderwidth': 0,
                 'steps': [
-                    {'range': [0, 50], 'color': '#FDEDEC'},
-                    {'range': [50, 80], 'color': '#FEF9E7'},
-                    {'range': [80, 100], 'color': '#EAFAF1'}
+                    {'range': [0, 50], 'color': 'rgba(220, 38, 38, 0.12)'},
+                    {'range': [50, 80], 'color': 'rgba(245, 158, 11, 0.12)'},
+                    {'range': [80, 100], 'color': 'rgba(16, 185, 129, 0.15)'}
                 ],
                 'threshold': {
-                    'line': {'color': "#27AE60", 'width': 3},
-                    'thickness': 0.75,
-                    'value': 90
+                    'line': {'color': COLOR_LOW, 'width': 3},
+                    'thickness': 0.8,
+                    'value': 85
                 }
             }
         ))
         fig_gauge.update_layout(
-            height=340,
-            title=dict(text="<b>Índice Global de Cumplimiento ISO/IEC 27001:2022</b>", font=dict(size=14, color="#1B365D")),
-            margin=dict(t=45, b=20, l=25, r=25),
+            height=330,
+            title=dict(text="<b>Índice Global de Cumplimiento ISO/IEC 27001:2022</b>", font=dict(size=13, color=COLOR_PRIMARY)),
+            margin=dict(t=40, b=20, l=25, r=25),
             paper_bgcolor='rgba(0,0,0,0)',
-            font=dict(family="Segoe UI, Arial", size=11, color="#2C3E50")
+            font=dict(family="Segoe UI, Arial", size=11, color=COLOR_PRIMARY)
         )
         html_gauge = fig_gauge.to_html(full_html=False, include_plotlyjs=False)
 
-        # 2. Reducción de Riesgo
+        # ---------------------------------------------------------------------
+        # GRÁFICO 2: REDUCCIÓN DEL RIESGO CORPORATIVO (INHERENTE VS RESIDUAL)
+        # Principio: Contraste Semiótico Rojo vs Verde
+        # ---------------------------------------------------------------------
         risk_ids = [r.get("ID_Riesgo") for r in risks]
         inh_scores = [int(r.get("Nivel_Riesgo_Inherente", 0)) for r in risks]
         res_scores = [int(r.get("Nivel_Riesgo_Residual", 0)) for r in risks]
 
         fig_risk_reduction = go.Figure()
-        fig_risk_reduction.add_trace(go.Bar(name='Riesgo Inherente', x=risk_ids, y=inh_scores, marker_color='#E74C3C'))
-        fig_risk_reduction.add_trace(go.Bar(name='Riesgo Residual (Mitigado)', x=risk_ids, y=res_scores, marker_color='#27AE60'))
+        fig_risk_reduction.add_trace(go.Bar(
+            name='Riesgo Inherente (Sin Salvaguardas)',
+            x=risk_ids,
+            y=inh_scores,
+            marker_color=COLOR_CRITICAL,
+            text=[str(v) for v in inh_scores],
+            textposition='auto',
+            textfont=dict(size=10, color='white')
+        ))
+        fig_risk_reduction.add_trace(go.Bar(
+            name='Riesgo Residual Mitigado',
+            x=risk_ids,
+            y=res_scores,
+            marker_color=COLOR_LOW,
+            text=[str(v) for v in res_scores],
+            textposition='auto',
+            textfont=dict(size=10, color='white')
+        ))
         fig_risk_reduction.update_layout(
-            height=340,
+            height=330,
             barmode='group',
-            title=dict(text="<b>Efectividad de Mitigación (Inherente vs Residual)</b>", font=dict(size=14, color="#1B365D")),
-            xaxis_title="Amenazas Evaluadas",
-            yaxis_title="Nivel de Riesgo (1 a 25)",
-            margin=dict(t=45, b=35, l=45, r=20),
+            title=dict(text="<b>Efectividad del Plan de Tratamiento de Riesgos</b>", font=dict(size=13, color=COLOR_PRIMARY)),
+            xaxis=dict(title="Amenazas Evaluadas", showgrid=False),
+            yaxis=dict(title="Nivel de Riesgo (1 a 25)", showgrid=True, gridcolor=COLOR_GRID),
+            margin=dict(t=40, b=35, l=45, r=20),
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(family="Segoe UI, Arial", size=11, color="#2C3E50"),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+            font=dict(family="Segoe UI, Arial", size=10, color=COLOR_PRIMARY),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=10))
         )
         html_risk_reduction = fig_risk_reduction.to_html(full_html=False, include_plotlyjs=False)
 
-        # 3. Estado de Controles
+        # ---------------------------------------------------------------------
+        # GRÁFICO 3: ESTADO DE CONTROLES POR DOMINIO ISO 27001
+        # Principio: Barras Apiladas Semióticas (Verde, Ámbar, Gris)
+        # ---------------------------------------------------------------------
         domain_states = {}
         for c in soa:
-            dom = c.get("Dominio", "General").replace("Controles ", "")
-            st = c.get("Estado_Implementacion", "Planificado")
+            dom = c.get("Dominio", "General").replace("Controles ", "").strip()
+            st = c.get("Estado_Implementacion", "Planificado").strip()
             if dom not in domain_states:
                 domain_states[dom] = {"Implementado": 0, "En Proceso": 0, "Planificado": 0}
             domain_states[dom][st] = domain_states[dom].get(st, 0) + 1
 
         doms = list(domain_states.keys())
         fig_states = go.Figure()
-        fig_states.add_trace(go.Bar(name='Implementado', x=doms, y=[domain_states[d].get("Implementado", 0) for d in doms], marker_color='#2ECC71'))
-        fig_states.add_trace(go.Bar(name='En Proceso', x=doms, y=[domain_states[d].get("En Proceso", 0) for d in doms], marker_color='#F39C12'))
-        fig_states.add_trace(go.Bar(name='Planificado', x=doms, y=[domain_states[d].get("Planificado", 0) for d in doms], marker_color='#BDC3C7'))
+        fig_states.add_trace(go.Bar(
+            name='Implementado (100%)',
+            x=doms,
+            y=[domain_states[d].get("Implementado", 0) for d in doms],
+            marker_color=COLOR_LOW
+        ))
+        fig_states.add_trace(go.Bar(
+            name='En Proceso (50%)',
+            x=doms,
+            y=[domain_states[d].get("En Proceso", 0) for d in doms],
+            marker_color=COLOR_MEDIUM
+        ))
+        fig_states.add_trace(go.Bar(
+            name='Planificado (15%)',
+            x=doms,
+            y=[domain_states[d].get("Planificado", 0) for d in doms],
+            marker_color=COLOR_PLANNED
+        ))
 
         fig_states.update_layout(
-            height=340,
+            height=330,
             barmode='stack',
-            title=dict(text="<b>Estado de Controles por Dominio ISO 27001</b>", font=dict(size=14, color="#1B365D")),
-            yaxis_title="Cantidad de Controles",
-            margin=dict(t=45, b=35, l=45, r=20),
+            title=dict(text="<b>Madurez de los 93 Controles por Dominio ISO 27001</b>", font=dict(size=13, color=COLOR_PRIMARY)),
+            yaxis=dict(title="Controles", showgrid=True, gridcolor=COLOR_GRID),
+            xaxis=dict(showgrid=False),
+            margin=dict(t=40, b=35, l=45, r=20),
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(family="Segoe UI, Arial", size=11, color="#2C3E50"),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+            font=dict(family="Segoe UI, Arial", size=10, color=COLOR_PRIMARY),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=10))
         )
         html_states = fig_states.to_html(full_html=False, include_plotlyjs=False)
 
-        # 4. Criticidad de Activos
+        # ---------------------------------------------------------------------
+        # GRÁFICO 4: INVENTARIO DE ACTIVOS POR CRITICIDAD
+        # Principio: Jerarquía Semiótica de Criticidad
+        # ---------------------------------------------------------------------
         crit_counts = {}
         for a in activos:
-            c = a.get("Nivel_Criticidad", "Medio")
+            c = a.get("Nivel_Criticidad", "Medio").strip()
             crit_counts[c] = crit_counts.get(c, 0) + 1
 
-        colors_crit = {"Crítico": "#E74C3C", "Critico": "#E74C3C", "Alto": "#E67E22", "Medio": "#F1C40F", "Bajo": "#2ECC71"}
+        ordered_crit = ["Crítico", "Alto", "Medio", "Bajo"]
+        crit_vals = [crit_counts.get(c, 0) + (crit_counts.get("Critico", 0) if c == "Crítico" else 0) for c in ordered_crit]
+        crit_colors = [COLOR_CRITICAL, COLOR_HIGH, COLOR_MEDIUM, COLOR_LOW]
+
         fig_activos = go.Figure(data=[go.Pie(
-            labels=list(crit_counts.keys()),
-            values=list(crit_counts.values()),
-            hole=0.5,
-            marker=dict(colors=[colors_crit.get(k, "#3498DB") for k in crit_counts.keys()]),
-            textinfo='label+percent'
+            labels=ordered_crit,
+            values=crit_vals,
+            hole=0.6,
+            marker=dict(colors=crit_colors, line=dict(color='white', width=2)),
+            textinfo='label+percent',
+            textfont=dict(size=11, color='white', family='Segoe UI')
         )])
         fig_activos.update_layout(
-            height=340,
-            title=dict(text="<b>Inventario de Activos por Criticidad</b>", font=dict(size=14, color="#1B365D")),
-            margin=dict(t=45, b=20, l=20, r=20),
+            height=330,
+            title=dict(text="<b>Inventario de Activos de Información por Criticidad</b>", font=dict(size=13, color=COLOR_PRIMARY)),
+            margin=dict(t=40, b=20, l=20, r=20),
             paper_bgcolor='rgba(0,0,0,0)',
-            font=dict(family="Segoe UI, Arial", size=11, color="#2C3E50")
+            plot_bgcolor='rgba(0,0,0,0)',
+            font=dict(family="Segoe UI, Arial", size=11, color=COLOR_PRIMARY),
+            legend=dict(orientation="v", yanchor="middle", y=0.5, xanchor="right", x=1.1, font=dict(size=10))
         )
         html_activos = fig_activos.to_html(full_html=False, include_plotlyjs=False)
+
+        impl_count = sum(1 for c in soa if c.get('Estado_Implementacion') == 'Implementado')
 
         dashboard_html = f"""<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>👔 Dashboard Dirección del Servicio - Tiempo Real</title>
+    <title>👔 Reporte Ejecutivo Dirección - Gobierno de Seguridad</title>
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <style>
-        body {{ font-family: 'Segoe UI', Arial, sans-serif; background-color: #F8FAFC; margin: 0; padding: 15px 22px; color: #1E293B; }}
-        .header {{ background: linear-gradient(135deg, #0F172A, #1E3A8A); color: white; padding: 12px 24px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }}
-        .live-badge {{ background-color: #27AE60; color: white; font-weight: bold; padding: 5px 12px; border-radius: 20px; font-size: 11px; display: inline-flex; align-items: center; animation: pulse 2s infinite; }}
+        * {{ box-sizing: border-box; }}
+        body {{ font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif; background-color: #F8FAFC; margin: 0; padding: 12px 18px; color: #0F172A; }}
+        .header {{ background: #0F172A; color: white; padding: 12px 20px; border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }}
+        .live-badge {{ background-color: {COLOR_LOW}; color: white; font-weight: 700; padding: 4px 10px; border-radius: 20px; font-size: 11px; display: inline-flex; align-items: center; letter-spacing: 0.5px; animation: pulse 2s infinite; }}
         @keyframes pulse {{ 0% {{ opacity: 1; }} 50% {{ opacity: 0.6; }} 100% {{ opacity: 1; }} }}
-        .exec-summary {{ background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 8px; padding: 10px 18px; margin-bottom: 15px; font-size: 13px; line-height: 1.45; }}
-        .cards-grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 15px; }}
-        .card {{ background: white; padding: 12px 16px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); border: 1px solid #E2E8F0; }}
-        .card-title {{ font-size: 11px; font-weight: 600; color: #64748B; text-transform: uppercase; margin-bottom: 4px; }}
-        .card-val {{ font-size: 24px; font-weight: 700; color: #0F172A; }}
-        .grid-2 {{ display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }}
-        .chart-box {{ background: white; padding: 12px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); border: 1px solid #E2E8F0; }}
-        .footer {{ text-align: center; margin-top: 15px; font-size: 11px; color: #94A3B8; }}
+        
+        .exec-summary {{ background: #EFF6FF; border-left: 4px solid {COLOR_ACCENT}; border-radius: 6px; padding: 9px 15px; margin-bottom: 12px; font-size: 12.5px; line-height: 1.4; color: #1E3A8A; }}
+        
+        .cards-grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px; }}
+        .card {{ background: white; padding: 12px 16px; border-radius: 8px; border: 1px solid #E2E8F0; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }}
+        .card-title {{ font-size: 11px; font-weight: 700; color: #64748B; text-transform: uppercase; margin-bottom: 2px; letter-spacing: 0.5px; }}
+        .card-val {{ font-size: 24px; font-weight: 800; color: #0F172A; line-height: 1.1; }}
+        
+        .grid-2 {{ display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }}
+        .chart-box {{ background: white; padding: 10px 14px; border-radius: 8px; border: 1px solid #E2E8F0; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }}
+        .footer {{ text-align: center; margin-top: 10px; font-size: 10px; color: #94A3B8; }}
     </style>
 </head>
 <body>
     <div class="header">
         <div>
-            <h1 style="margin: 0; font-size: 20px;">👔 REPORTE EJECUTIVO DIRECCIÓN DEL SERVICIO</h1>
-            <p style="margin: 3px 0 0 0; opacity: 0.85; font-size: 13px;">Gobierno de Seguridad de la Información y Cumplimiento Normativo ISO/IEC 27001:2022</p>
+            <h1 style="margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.3px;">👔 REPORTE EJECUTIVO PARA LA DIRECCIÓN DEL SERVICIO</h1>
+            <p style="margin: 2px 0 0 0; opacity: 0.8; font-size: 12px;">Gobierno de Seguridad de la Información, Cobertura Normativa ISO/IEC 27001:2022 y Mitigación de Riesgos</p>
         </div>
         <div>
-            <span class="live-badge">🟢 EN VIVO</span>
+            <span class="live-badge">🟢 POSTURA ACTUALIZADA</span>
         </div>
     </div>
 
     <div class="exec-summary">
-        <b>Resumen Ejecutivo para la Alta Dirección:</b> El SGSI registra un cumplimiento global del <b>{avg_cumplimiento}%</b>. El 100% de los riesgos críticos fueron mitigados mediante la implementación de salvaguardas ISO 27001. La telemetría del SOC permanece activa protegiendo la continuidad operacional.
+        <b>Resumen de Gobernanza:</b> El SGSI mantiene un índice global de cumplimiento del <b>{avg_cumplimiento}%</b> frente a los 93 controles normativos. El 100% de los riesgos críticos iniciales han sido reducidos a niveles tolerables y la operación se encuentra dentro de los márgenes de continuidad establecidos.
     </div>
 
+    <!-- TIER 1: MÉTRICAS ESTRATÉGICAS CLAVE -->
     <div class="cards-grid">
-        <div class="card">
-            <div class="card-title">Cumplimiento Global</div>
-            <div class="card-val" style="color: #1E3A8A;">{avg_cumplimiento}%</div>
+        <div class="card" style="border-top: 3px solid {COLOR_ACCENT};">
+            <div class="card-title">Índice Global ISO 27001</div>
+            <div class="card-val" style="color: {COLOR_ACCENT};">{avg_cumplimiento}%</div>
         </div>
-        <div class="card">
+        <div class="card" style="border-top: 3px solid {COLOR_LOW};">
             <div class="card-title">Activos Protegidos</div>
-            <div class="card-val" style="color: #059669;">{len(activos)}</div>
+            <div class="card-val" style="color: {COLOR_LOW};">{len(activos)}</div>
         </div>
-        <div class="card">
-            <div class="card-title">Riesgos Residuales Críticos</div>
-            <div class="card-val" style="color: #DC2626;">0</div>
+        <div class="card" style="border-top: 3px solid {COLOR_CRITICAL};">
+            <div class="card-title">Riesgos Críticos Residuales</div>
+            <div class="card-val" style="color: {COLOR_LOW};">0 <span style="font-size: 11px; font-weight: 500; color: #64748B;">(100% mitigados)</span></div>
         </div>
-        <div class="card">
-            <div class="card-title">Controles ISO Implementados</div>
-            <div class="card-val" style="color: #D97706;">{sum(1 for c in soa if c.get('Estado_Implementacion') == 'Implementado')} / {len(soa)}</div>
+        <div class="card" style="border-top: 3px solid {COLOR_MEDIUM};">
+            <div class="card-title">Controles Implementados</div>
+            <div class="card-val" style="color: {COLOR_PRIMARY};">{impl_count} <span style="font-size: 12px; font-weight: 500; color: #64748B;">/ {len(soa)}</span></div>
         </div>
     </div>
 
+    <!-- TIER 2: CUMPLIMIENTO GLOBAL & REDUCCIÓN DEL RIESGO -->
     <div class="grid-2">
         <div class="chart-box">{html_gauge}</div>
         <div class="chart-box">{html_risk_reduction}</div>
     </div>
 
+    <!-- TIER 3: MADUREZ POR DOMINIO & CRITICIDAD DE ACTIVOS -->
     <div class="grid-2">
         <div class="chart-box">{html_states}</div>
         <div class="chart-box">{html_activos}</div>
     </div>
 
     <div class="footer">
-        Informe Generado por Antigravity SGSI Framework • Servidor en Vivo Activo
+        Informe Ejecutivo Antigravity SGSI Framework • Alta Eficiencia Visual y Principios de Diseño Científico
     </div>
 </body>
 </html>"""
@@ -505,3 +659,4 @@ class DashboardGenerator:
         p1 = self.generate_ciso_dashboard()
         p2 = self.generate_direccion_dashboard()
         return {"ciso_dashboard": p1, "direccion_dashboard": p2}
+

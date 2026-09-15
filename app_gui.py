@@ -17,6 +17,7 @@ from datetime import datetime
 
 # Importar módulos del core
 from core.risk_calculator import RiskCalculator
+from core.soa_manager import SoAManager
 from core.incident_manager import IncidentManager
 from core.gsheets_manager import GSheetsManager
 from soc_engine.log_parser import LogParser
@@ -484,15 +485,58 @@ class SGSISOCApp(tk.Tk):
         messagebox.showinfo("Ingesta Finalizada", f"Se procesaron {count} líneas del log.\nIncidentes detectados y registrados: {detected}")
 
     # -------------------------------------------------------------------------
-    # TAB 3: MATRIZ DE RIESGOS (ISO 27005)
+    # TAB 3: MATRIZ DE RIESGOS (ISO 27005) - ADMINISTRADOR INTERACTIVO
     # -------------------------------------------------------------------------
     def _build_tab_risks(self):
         actions_bar = tk.Frame(self.tab_risks, bg=self.color_bg)
         actions_bar.pack(fill=tk.X, padx=10, pady=8)
 
+        # Botón Agregar Riesgo
+        btn_add = tk.Button(
+            actions_bar,
+            text="➕ Agregar Riesgo",
+            font=("Segoe UI", 9, "bold"),
+            bg="#27AE60",
+            fg="white",
+            relief=tk.FLAT,
+            padx=10,
+            pady=5,
+            command=self.action_add_risk
+        )
+        btn_add.pack(side=tk.LEFT, padx=4)
+
+        # Botón Editar Riesgo
+        btn_edit = tk.Button(
+            actions_bar,
+            text="✏️ Editar Riesgo",
+            font=("Segoe UI", 9, "bold"),
+            bg="#2980B9",
+            fg="white",
+            relief=tk.FLAT,
+            padx=10,
+            pady=5,
+            command=self.action_edit_risk
+        )
+        btn_edit.pack(side=tk.LEFT, padx=4)
+
+        # Botón Eliminar Riesgo
+        btn_del = tk.Button(
+            actions_bar,
+            text="🗑️ Eliminar",
+            font=("Segoe UI", 9, "bold"),
+            bg="#E74C3C",
+            fg="white",
+            relief=tk.FLAT,
+            padx=10,
+            pady=5,
+            command=self.action_delete_risk
+        )
+        btn_del.pack(side=tk.LEFT, padx=4)
+
+        # Botón Recalcular Matriz
         btn_recalc = tk.Button(
             actions_bar,
-            text="⚙️ Recalcular Matriz de Riesgos ISO 27005",
+            text="⚙️ Recalcular Matriz ISO 27005",
             font=("Segoe UI", 9, "bold"),
             bg=self.color_primary,
             fg="white",
@@ -501,28 +545,56 @@ class SGSISOCApp(tk.Tk):
             pady=5,
             command=self.action_recalculate_risks
         )
-        btn_recalc.pack(side=tk.LEFT, padx=5)
+        btn_recalc.pack(side=tk.LEFT, padx=4)
 
-        cols = ("ID", "Activo", "Amenaza", "Vulnerabilidad", "Riesgo Inherente", "Eficacia", "Riesgo Residual", "Estrategia")
+        # Nota informativa
+        lbl_hint = tk.Label(
+            actions_bar,
+            text="💡 Doble clic en cualquier fila para editar rápidamente",
+            font=("Segoe UI", 8, "italic"),
+            bg=self.color_bg,
+            fg="#7F8C8D"
+        )
+        lbl_hint.pack(side=tk.LEFT, padx=12)
+
+        # Botón Refrescar
+        btn_refresh = tk.Button(
+            actions_bar,
+            text="🔄 Actualizar",
+            font=("Segoe UI", 9),
+            bg="#BDC3C7",
+            fg="#2C3E50",
+            relief=tk.FLAT,
+            padx=8,
+            pady=5,
+            command=self.load_risks_table
+        )
+        btn_refresh.pack(side=tk.RIGHT, padx=4)
+
+        cols = ("ID", "Activo", "Amenaza", "Vulnerabilidad", "Riesgo Inherente", "Eficacia", "Riesgo Residual", "Estrategia", "Responsable", "Fecha")
         self.tree_risks = ttk.Treeview(self.tab_risks, columns=cols, show="headings", selectmode="browse")
 
         self.tree_risks.heading("ID", text="ID")
         self.tree_risks.heading("Activo", text="Activo")
-        self.tree_risks.heading("Amenaza", text="Amenaza")
-        self.tree_risks.heading("Vulnerabilidad", text="Vulnerabilidad")
+        self.tree_risks.heading("Amenaza", text="Amenaza Identificada")
+        self.tree_risks.heading("Vulnerabilidad", text="Vulnerabilidad / Causa")
         self.tree_risks.heading("Riesgo Inherente", text="Riesgo Inherente")
         self.tree_risks.heading("Eficacia", text="Eficacia Controles")
         self.tree_risks.heading("Riesgo Residual", text="Riesgo Residual")
         self.tree_risks.heading("Estrategia", text="Estrategia")
+        self.tree_risks.heading("Responsable", text="Responsable")
+        self.tree_risks.heading("Fecha", text="Fecha Revisión")
 
         self.tree_risks.column("ID", width=70, anchor="center")
-        self.tree_risks.column("Activo", width=90, anchor="center")
-        self.tree_risks.column("Amenaza", width=200)
-        self.tree_risks.column("Vulnerabilidad", width=180)
-        self.tree_risks.column("Riesgo Inherente", width=110, anchor="center")
-        self.tree_risks.column("Eficacia", width=100, anchor="center")
-        self.tree_risks.column("Riesgo Residual", width=100, anchor="center")
-        self.tree_risks.column("Estrategia", width=90, anchor="center")
+        self.tree_risks.column("Activo", width=80, anchor="center")
+        self.tree_risks.column("Amenaza", width=190)
+        self.tree_risks.column("Vulnerabilidad", width=170)
+        self.tree_risks.column("Riesgo Inherente", width=115, anchor="center")
+        self.tree_risks.column("Eficacia", width=95, anchor="center")
+        self.tree_risks.column("Riesgo Residual", width=105, anchor="center")
+        self.tree_risks.column("Estrategia", width=85, anchor="center")
+        self.tree_risks.column("Responsable", width=110)
+        self.tree_risks.column("Fecha", width=90, anchor="center")
 
         scroll_y = ttk.Scrollbar(self.tab_risks, orient=tk.VERTICAL, command=self.tree_risks.yview)
         self.tree_risks.configure(yscrollcommand=scroll_y.set)
@@ -530,52 +602,496 @@ class SGSISOCApp(tk.Tk):
         self.tree_risks.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(10, 0), pady=5)
         scroll_y.pack(side=tk.RIGHT, fill=tk.Y, padx=(0, 10), pady=5)
 
+        # Doble clic para editar
+        self.tree_risks.bind("<Double-1>", lambda event: self.action_edit_risk())
+
     def load_risks_table(self):
         for item in self.tree_risks.get_children():
             self.tree_risks.delete(item)
 
-        risk_file = os.path.join("templates_google", "02_matriz_riesgos_template.csv")
-        if not os.path.exists(risk_file):
-            return
-
-        with open(risk_file, "r", encoding="utf-8-sig") as f:
-            reader = csv.DictReader(f)
-            for r in reader:
-                self.tree_risks.insert("", tk.END, values=(
-                    r.get("ID_Riesgo", ""),
-                    r.get("ID_Activo", ""),
-                    r.get("Amenaza", ""),
-                    r.get("Vulnerabilidad", ""),
-                    f"{r.get('Nivel_Riesgo_Inherente', '')} ({r.get('Categoria_Riesgo_Inherente', '')})",
-                    r.get("Eficacia_Controles_Pct", ""),
-                    f"{r.get('Nivel_Riesgo_Residual', '')} ({r.get('Categoria_Riesgo_Residual', '')})",
-                    r.get("Estrategia_Tratamiento", "")
-                ))
+        calc = RiskCalculator()
+        risks = calc.get_all_risks()
+        for r in risks:
+            self.tree_risks.insert("", tk.END, values=(
+                r.get("ID_Riesgo", ""),
+                r.get("ID_Activo", ""),
+                r.get("Amenaza", ""),
+                r.get("Vulnerabilidad", ""),
+                f"{r.get('Nivel_Riesgo_Inherente', '')} ({r.get('Categoria_Riesgo_Inherente', '')})",
+                r.get("Eficacia_Controles_Pct", ""),
+                f"{r.get('Nivel_Riesgo_Residual', '')} ({r.get('Categoria_Riesgo_Residual', '')})",
+                r.get("Estrategia_Tratamiento", ""),
+                r.get("Responsable", ""),
+                r.get("Fecha_Revision", "")
+            ))
 
     def action_recalculate_risks(self):
-        risk_calc = RiskCalculator()
-        risk_file = os.path.join("templates_google", "02_matriz_riesgos_template.csv")
-        risk_calc.process_risk_matrix(risk_file, risk_file)
+        calc = RiskCalculator()
+        calc.process_risk_matrix()
         self.load_risks_table()
+        try:
+            DashboardGenerator().generate_all()
+        except:
+            pass
         messagebox.showinfo("Cálculo de Riesgos", "¡Matriz de Riesgos ISO 27005 recalculada y actualizada con éxito!")
 
+    def action_add_risk(self):
+        self._open_risk_modal(existing_risk=None)
+
+    def action_edit_risk(self):
+        selected = self.tree_risks.selection()
+        if not selected:
+            messagebox.showwarning("Seleccionar Riesgo", "Por favor selecciona un riesgo de la lista para editar.")
+            return
+
+        item = self.tree_risks.item(selected[0])
+        risk_id = item["values"][0]
+
+        calc = RiskCalculator()
+        all_risks = calc.get_all_risks()
+        target_risk = None
+        for r in all_risks:
+            if r.get("ID_Riesgo") == risk_id:
+                target_risk = r
+                break
+
+        if not target_risk:
+            messagebox.showerror("Error", f"No se encontró el registro del riesgo {risk_id}.")
+            return
+
+        self._open_risk_modal(existing_risk=target_risk)
+
+    def action_delete_risk(self):
+        selected = self.tree_risks.selection()
+        if not selected:
+            messagebox.showwarning("Seleccionar Riesgo", "Por favor selecciona un riesgo de la lista para eliminar.")
+            return
+
+        item = self.tree_risks.item(selected[0])
+        risk_id = item["values"][0]
+        amenaza = item["values"][2]
+
+        if messagebox.askyesno("Confirmar Eliminación", f"¿Estás seguro de que deseas eliminar permanentemente el riesgo {risk_id}?\n\n'{amenaza}'"):
+            calc = RiskCalculator()
+            if calc.delete_risk(risk_id):
+                self.load_risks_table()
+                try:
+                    DashboardGenerator().generate_all()
+                except:
+                    pass
+                messagebox.showinfo("Eliminado", f"El riesgo {risk_id} fue eliminado correctamente.")
+            else:
+                messagebox.showerror("Error", "No se pudo eliminar el riesgo.")
+
+    def _open_risk_modal(self, existing_risk: dict = None):
+        modal = tk.Toplevel(self)
+        is_edit = existing_risk is not None
+        modal.title("✏️ Modificar Riesgo ISO 27005" if is_edit else "➕ Registrar Nuevo Riesgo ISO 27005")
+        modal.geometry("720x680")
+        modal.minsize(680, 620)
+        modal.configure(bg=self.color_bg)
+        modal.grab_set()
+
+        # Header modal
+        hdr = tk.Frame(modal, bg=self.color_primary, padx=15, pady=10)
+        hdr.pack(fill=tk.X)
+        tk.Label(
+            hdr,
+            text="✏️ Editor de Matriz de Riesgos ISO/IEC 27005" if is_edit else "➕ Registro de Nuevo Riesgo ISO/IEC 27005",
+            font=("Segoe UI", 11, "bold"),
+            bg=self.color_primary,
+            fg="white"
+        ).pack(anchor="w")
+        tk.Label(
+            hdr,
+            text="Define el activo, la amenaza, probabilidad, impacto y la eficacia de las salvaguardas ISO 27001.",
+            font=("Segoe UI", 8),
+            bg=self.color_primary,
+            fg="#D1D5DB"
+        ).pack(anchor="w")
+
+        # Contenedor scrollable o directo
+        form_frame = tk.Frame(modal, bg=self.color_bg, padx=15, pady=10)
+        form_frame.pack(fill=tk.BOTH, expand=True)
+
+        # 1. Fila ID e ID Activo
+        row1 = tk.Frame(form_frame, bg=self.color_bg)
+        row1.pack(fill=tk.X, pady=4)
+
+        tk.Label(row1, text="ID Riesgo:", font=("Segoe UI", 9, "bold"), bg=self.color_bg, width=12, anchor="w").pack(side=tk.LEFT)
+        e_id = tk.Entry(row1, font=("Segoe UI", 9), width=15)
+        if is_edit:
+            e_id.insert(0, existing_risk.get("ID_Riesgo", ""))
+            e_id.config(state="readonly")
+        else:
+            calc = RiskCalculator()
+            risks = calc.get_all_risks()
+            next_idx = len(risks) + 1
+            e_id.insert(0, f"RSG-{next_idx:03d}")
+        e_id.pack(side=tk.LEFT, padx=(0, 20))
+
+        tk.Label(row1, text="Activo Afectado:", font=("Segoe UI", 9, "bold"), bg=self.color_bg, width=14, anchor="w").pack(side=tk.LEFT)
+        
+        # Cargar lista de activos disponibles
+        activos_list = ["ACT-001", "ACT-002", "ACT-003", "ACT-004", "ACT-005", "ACT-006"]
+        activos_csv = os.path.join("templates_google", "01_inventario_activos_template.csv")
+        if os.path.exists(activos_csv):
+            try:
+                with open(activos_csv, "r", encoding="utf-8-sig") as f:
+                    reader = csv.DictReader(f)
+                    activos_list = [f"{r.get('ID_Activo')} - {r.get('Nombre_Activo', '')[:25]}" for r in reader]
+            except:
+                pass
+
+        cb_asset = ttk.Combobox(row1, values=activos_list, font=("Segoe UI", 9), width=30)
+        curr_asset = existing_risk.get("ID_Activo", "ACT-001") if is_edit else (activos_list[0] if activos_list else "ACT-001")
+        # Seleccionar si coincide
+        matched = False
+        for a in activos_list:
+            if curr_asset in a:
+                cb_asset.set(a)
+                matched = True
+                break
+        if not matched:
+            cb_asset.set(curr_asset)
+        cb_asset.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        # 2. Amenaza
+        row2 = tk.Frame(form_frame, bg=self.color_bg)
+        row2.pack(fill=tk.X, pady=4)
+        tk.Label(row2, text="Amenaza:", font=("Segoe UI", 9, "bold"), bg=self.color_bg, width=12, anchor="w").pack(side=tk.LEFT)
+        e_threat = tk.Entry(row2, font=("Segoe UI", 9))
+        e_threat.insert(0, existing_risk.get("Amenaza", "") if is_edit else "")
+        e_threat.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        # 3. Vulnerabilidad
+        row3 = tk.Frame(form_frame, bg=self.color_bg)
+        row3.pack(fill=tk.X, pady=4)
+        tk.Label(row3, text="Vulnerabilidad:", font=("Segoe UI", 9, "bold"), bg=self.color_bg, width=12, anchor="w").pack(side=tk.LEFT)
+        e_vuln = tk.Entry(row3, font=("Segoe UI", 9))
+        e_vuln.insert(0, existing_risk.get("Vulnerabilidad", "") if is_edit else "")
+        e_vuln.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        # 4. Probabilidad e Impacto Inherente
+        row4 = tk.Frame(form_frame, bg=self.color_bg)
+        row4.pack(fill=tk.X, pady=6)
+
+        prob_options = ["1 - Muy Baja", "2 - Baja", "3 - Media", "4 - Alta", "5 - Muy Alta / Crítica"]
+        imp_options = ["1 - Despreciable", "2 - Menor", "3 - Moderado", "4 - Mayor", "5 - Catastrófico"]
+
+        tk.Label(row4, text="Probabilidad (1-5):", font=("Segoe UI", 9, "bold"), bg=self.color_bg, width=15, anchor="w").pack(side=tk.LEFT)
+        cb_prob = ttk.Combobox(row4, values=prob_options, font=("Segoe UI", 9), width=16, state="readonly")
+        p_val = int(existing_risk.get("Probabilidad_Inherente_1a5", 3)) if is_edit else 3
+        cb_prob.set(prob_options[min(max(p_val - 1, 0), 4)])
+        cb_prob.pack(side=tk.LEFT, padx=(0, 15))
+
+        tk.Label(row4, text="Impacto (1-5):", font=("Segoe UI", 9, "bold"), bg=self.color_bg, width=12, anchor="w").pack(side=tk.LEFT)
+        cb_imp = ttk.Combobox(row4, values=imp_options, font=("Segoe UI", 9), width=16, state="readonly")
+        i_val = int(existing_risk.get("Impacto_Inherente_1a5", 3)) if is_edit else 3
+        cb_imp.set(imp_options[min(max(i_val - 1, 0), 4)])
+        cb_imp.pack(side=tk.LEFT)
+
+        # 5. Salvaguardas y Controles
+        row5 = tk.Frame(form_frame, bg=self.color_bg)
+        row5.pack(fill=tk.X, pady=4)
+        tk.Label(row5, text="Controles Aplicados:", font=("Segoe UI", 9, "bold"), bg=self.color_bg, width=16, anchor="w").pack(side=tk.LEFT)
+        e_controls = tk.Entry(row5, font=("Segoe UI", 9))
+        e_controls.insert(0, existing_risk.get("Controles_Aplicados", "") if is_edit else "A.8.7 (Antimalware), A.8.13 (Backups)")
+        e_controls.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        # 6. Eficacia Controles (%) con Slider
+        row6 = tk.Frame(form_frame, bg=self.color_bg)
+        row6.pack(fill=tk.X, pady=4)
+        tk.Label(row6, text="Eficacia Controles:", font=("Segoe UI", 9, "bold"), bg=self.color_bg, width=16, anchor="w").pack(side=tk.LEFT)
+        
+        eff_init = 70
+        if is_edit:
+            try:
+                eff_init = int(str(existing_risk.get("Eficacia_Controles_Pct", "70%")).replace("%", "").strip())
+            except:
+                eff_init = 70
+
+        lbl_eff_val = tk.Label(row6, text=f"{eff_init}%", font=("Segoe UI", 10, "bold"), bg=self.color_bg, fg="#2980B9", width=6)
+        
+        def on_slider_move(val):
+            v = int(float(val))
+            lbl_eff_val.config(text=f"{v}%")
+            update_live_calc()
+
+        scale_eff = ttk.Scale(row6, from_=0, to=100, orient=tk.HORIZONTAL, value=eff_init, command=on_slider_move)
+        scale_eff.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 8))
+        lbl_eff_val.pack(side=tk.LEFT)
+
+        # 7. Estrategia y Responsable
+        row7 = tk.Frame(form_frame, bg=self.color_bg)
+        row7.pack(fill=tk.X, pady=4)
+
+        tk.Label(row7, text="Estrategia:", font=("Segoe UI", 9, "bold"), bg=self.color_bg, width=12, anchor="w").pack(side=tk.LEFT)
+        cb_strat = ttk.Combobox(row7, values=["Mitigar", "Aceptar", "Transferir", "Evitar"], font=("Segoe UI", 9), width=12, state="readonly")
+        cb_strat.set(existing_risk.get("Estrategia_Tratamiento", "Mitigar") if is_edit else "Mitigar")
+        cb_strat.pack(side=tk.LEFT, padx=(0, 15))
+
+        tk.Label(row7, text="Responsable:", font=("Segoe UI", 9, "bold"), bg=self.color_bg, width=11, anchor="w").pack(side=tk.LEFT)
+        e_owner = tk.Entry(row7, font=("Segoe UI", 9), width=18)
+        e_owner.insert(0, existing_risk.get("Responsable", "CISO") if is_edit else "CISO")
+        e_owner.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        # 8. Fecha Revisión
+        row8 = tk.Frame(form_frame, bg=self.color_bg)
+        row8.pack(fill=tk.X, pady=4)
+        tk.Label(row8, text="Fecha Revisión:", font=("Segoe UI", 9, "bold"), bg=self.color_bg, width=14, anchor="w").pack(side=tk.LEFT)
+        e_date = tk.Entry(row8, font=("Segoe UI", 9), width=15)
+        e_date.insert(0, existing_risk.get("Fecha_Revision", datetime.now().strftime("%Y-%m-%d")) if is_edit else datetime.now().strftime("%Y-%m-%d"))
+        e_date.pack(side=tk.LEFT)
+
+        # ---------------------------------------------------------------------
+        # TARJETA DE CÁLCULO DINÁMICO EN VIVO (PREVIEW)
+        # ---------------------------------------------------------------------
+        f_calc = tk.LabelFrame(form_frame, text=" ⚡ Cálculo Dinámico ISO 27005 en Tiempo Real ", font=("Segoe UI", 9, "bold"), bg=self.color_card, padx=12, pady=10)
+        f_calc.pack(fill=tk.X, pady=12)
+
+        calc_grid = tk.Frame(f_calc, bg=self.color_card)
+        calc_grid.pack(fill=tk.X)
+
+        # Inherente Box
+        b_inh = tk.Frame(calc_grid, bg="#FDEDEC", padx=10, pady=8, bd=1, relief=tk.SOLID)
+        b_inh.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=4)
+        tk.Label(b_inh, text="RIESGO INHERENTE", font=("Segoe UI", 8, "bold"), bg="#FDEDEC", fg="#7F8C8D").pack()
+        lbl_inh_score = tk.Label(b_inh, text="15 (Alto)", font=("Segoe UI", 13, "bold"), bg="#FDEDEC", fg="#E74C3C")
+        lbl_inh_score.pack()
+
+        # Flecha
+        tk.Label(calc_grid, text="➡️", font=("Segoe UI", 16), bg=self.color_card, fg="#7F8C8D").pack(side=tk.LEFT, padx=4)
+
+        # Residual Box
+        b_res = tk.Frame(calc_grid, bg="#EAFAF1", padx=10, pady=8, bd=1, relief=tk.SOLID)
+        b_res.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=4)
+        tk.Label(b_res, text="RIESGO RESIDUAL", font=("Segoe UI", 8, "bold"), bg="#EAFAF1", fg="#7F8C8D").pack()
+        lbl_res_score = tk.Label(b_res, text="4 (Bajo)", font=("Segoe UI", 13, "bold"), bg="#EAFAF1", fg="#27AE60")
+        lbl_res_score.pack()
+
+        # Tratamiento Sugerido
+        lbl_sugg = tk.Label(f_calc, text="Tratamiento Recomendado: Mitigar", font=("Segoe UI", 9, "italic"), bg=self.color_card, fg="#2C3E50")
+        lbl_sugg.pack(pady=(6, 0))
+
+        def update_live_calc(*args):
+            try:
+                p_str = cb_prob.get().split(" - ")[0].strip()
+                p = int(p_str) if p_str.isdigit() else 3
+                i_str = cb_imp.get().split(" - ")[0].strip()
+                i = int(i_str) if i_str.isdigit() else 3
+                eff = float(scale_eff.get())
+
+                calc = RiskCalculator()
+                res = calc.calculate_residual(p, i, eff)
+
+                inh_txt = f"{res['inherent_score']} ({res['inherent_level']})"
+                res_txt = f"{res['residual_score']} ({res['residual_level']})"
+                
+                lbl_inh_score.config(text=inh_txt)
+                lbl_res_score.config(text=res_txt)
+                lbl_sugg.config(text=f"Tratamiento Recomendado según ISO 27005: {res['treatment_strategy']}")
+            except Exception as e:
+                pass
+
+        cb_prob.bind("<<ComboboxSelected>>", update_live_calc)
+        cb_imp.bind("<<ComboboxSelected>>", update_live_calc)
+        update_live_calc()
+
+        # ---------------------------------------------------------------------
+        # BOTONES DE ACCIÓN (GUARDAR / CANCELAR)
+        # ---------------------------------------------------------------------
+        btn_box = tk.Frame(modal, bg=self.color_bg, pady=10)
+        btn_box.pack(fill=tk.X, side=tk.BOTTOM)
+
+        def save_and_close():
+            r_id = e_id.get().strip()
+            asset_raw = cb_asset.get().strip()
+            # Extraer solo ID si tiene formato ACT-XXX - Nombre
+            asset_id = asset_raw.split(" - ")[0].strip() if " - " in asset_raw else asset_raw
+            threat = e_threat.get().strip()
+            vuln = e_vuln.get().strip()
+            
+            p_val_str = cb_prob.get().split(" - ")[0].strip()
+            p_val = int(p_val_str) if p_val_str.isdigit() else 3
+            i_val_str = cb_imp.get().split(" - ")[0].strip()
+            i_val = int(i_val_str) if i_val_str.isdigit() else 3
+
+            ctrls = e_controls.get().strip()
+            eff_val = int(scale_eff.get())
+            strat = cb_strat.get().strip()
+            owner = e_owner.get().strip()
+            date_val = e_date.get().strip()
+
+            if not threat:
+                messagebox.showwarning("Campo Obligatorio", "Por favor ingresa la Amenaza identificada.", parent=modal)
+                return
+
+            risk_payload = {
+                "ID_Riesgo": r_id,
+                "ID_Activo": asset_id,
+                "Amenaza": threat,
+                "Vulnerabilidad": vuln,
+                "Probabilidad_Inherente_1a5": str(p_val),
+                "Impacto_Inherente_1a5": str(i_val),
+                "Controles_Aplicados": ctrls,
+                "Eficacia_Controles_Pct": f"{eff_val}%",
+                "Estrategia_Tratamiento": strat,
+                "Responsable": owner,
+                "Fecha_Revision": date_val
+            }
+
+            calc = RiskCalculator()
+            saved_id = calc.save_risk(risk_payload)
+            self.load_risks_table()
+
+            # Regenerar Dashboards en segundo plano
+            try:
+                DashboardGenerator().generate_all()
+            except:
+                pass
+
+            messagebox.showinfo("Guardado Exitoso", f"¡El riesgo {saved_id} ha sido registrado y calculado con éxito!", parent=modal)
+            modal.destroy()
+
+        tk.Button(
+            btn_box,
+            text="💾 Guardar Riesgo",
+            font=("Segoe UI", 10, "bold"),
+            bg="#27AE60",
+            fg="white",
+            relief=tk.FLAT,
+            padx=18,
+            pady=6,
+            command=save_and_close
+        ).pack(side=tk.RIGHT, padx=15)
+
+        tk.Button(
+            btn_box,
+            text="Cancelar",
+            font=("Segoe UI", 9),
+            bg="#BDC3C7",
+            fg="#2C3E50",
+            relief=tk.FLAT,
+            padx=12,
+            pady=6,
+            command=modal.destroy
+        ).pack(side=tk.RIGHT, padx=5)
+
     # -------------------------------------------------------------------------
-    # TAB 4: DECLARACIÓN DE APLICABILIDAD SoA (ISO 27001)
+    # TAB 4: DECLARACIÓN DE APLICABILIDAD SoA (ISO 27001) - ADMINISTRADOR
     # -------------------------------------------------------------------------
     def _build_tab_soa(self):
-        info_bar = tk.Frame(self.tab_soa, bg=self.color_bg)
-        info_bar.pack(fill=tk.X, padx=10, pady=8)
+        # 1. Barra de Filtros y Búsqueda
+        filter_bar = tk.Frame(self.tab_soa, bg=self.color_bg)
+        filter_bar.pack(fill=tk.X, padx=10, pady=(8, 4))
 
-        lbl = tk.Label(
-            info_bar,
-            text="Catálogo de los 93 Controles de Seguridad ISO/IEC 27001:2022 (Organizacional, Personas, Físico, Tecnológico)",
-            font=("Segoe UI", 9, "italic"),
-            bg=self.color_bg,
-            fg="#555555"
+        tk.Label(filter_bar, text="🔍 Buscar:", font=("Segoe UI", 9, "bold"), bg=self.color_bg).pack(side=tk.LEFT, padx=(0, 4))
+        self.soa_search_entry = tk.Entry(filter_bar, font=("Segoe UI", 9), width=20)
+        self.soa_search_entry.pack(side=tk.LEFT, padx=(0, 10))
+        self.soa_search_entry.bind("<KeyRelease>", lambda event: self.filter_soa_table())
+
+        tk.Label(filter_bar, text="Dominio:", font=("Segoe UI", 9, "bold"), bg=self.color_bg).pack(side=tk.LEFT, padx=(0, 4))
+        self.soa_domain_cb = ttk.Combobox(filter_bar, values=[
+            "Todos los Dominios",
+            "Controles Organizacionales",
+            "Controles de Personas",
+            "Controles Físicos",
+            "Controles Tecnológicos"
+        ], font=("Segoe UI", 9), width=22, state="readonly")
+        self.soa_domain_cb.set("Todos los Dominios")
+        self.soa_domain_cb.pack(side=tk.LEFT, padx=(0, 10))
+        self.soa_domain_cb.bind("<<ComboboxSelected>>", lambda event: self.filter_soa_table())
+
+        tk.Label(filter_bar, text="Estado:", font=("Segoe UI", 9, "bold"), bg=self.color_bg).pack(side=tk.LEFT, padx=(0, 4))
+        self.soa_state_cb = ttk.Combobox(filter_bar, values=[
+            "Todos los Estados",
+            "Implementado",
+            "En Proceso",
+            "Planificado",
+            "No Aplica"
+        ], font=("Segoe UI", 9), width=16, state="readonly")
+        self.soa_state_cb.set("Todos los Estados")
+        self.soa_state_cb.pack(side=tk.LEFT, padx=(0, 10))
+        self.soa_state_cb.bind("<<ComboboxSelected>>", lambda event: self.filter_soa_table())
+
+        btn_clear_filter = tk.Button(
+            filter_bar,
+            text="🧹 Limpiar",
+            font=("Segoe UI", 8),
+            bg="#E2E8F0",
+            fg="#2C3E50",
+            relief=tk.FLAT,
+            padx=6,
+            pady=2,
+            command=self.clear_soa_filters
         )
-        lbl.pack(side=tk.LEFT, padx=5)
+        btn_clear_filter.pack(side=tk.LEFT)
 
-        cols = ("Código", "Nombre del Control", "Dominio", "Aplica", "Estado", "Madurez %", "Responsable")
+        # Contador de controles filtrados
+        self.soa_count_lbl = tk.Label(filter_bar, text="93 controles", font=("Segoe UI", 9, "bold"), bg=self.color_bg, fg="#2980B9")
+        self.soa_count_lbl.pack(side=tk.RIGHT, padx=5)
+
+        # 2. Barra de Acciones Rápidas
+        actions_bar = tk.Frame(self.tab_soa, bg=self.color_bg)
+        actions_bar.pack(fill=tk.X, padx=10, pady=(2, 6))
+
+        btn_edit_ctrl = tk.Button(
+            actions_bar,
+            text="✏️ Editar Control...",
+            font=("Segoe UI", 9, "bold"),
+            bg="#2980B9",
+            fg="white",
+            relief=tk.FLAT,
+            padx=10,
+            pady=4,
+            command=self.action_edit_soa_control
+        )
+        btn_edit_ctrl.pack(side=tk.LEFT, padx=(0, 6))
+
+        tk.Label(actions_bar, text="| Acciones Rápidas:", font=("Segoe UI", 9), bg=self.color_bg, fg="#7F8C8D").pack(side=tk.LEFT, padx=4)
+
+        btn_quick_impl = tk.Button(
+            actions_bar,
+            text="✅ Implementado (100%)",
+            font=("Segoe UI", 8, "bold"),
+            bg="#27AE60",
+            fg="white",
+            relief=tk.FLAT,
+            padx=8,
+            pady=3,
+            command=lambda: self.action_quick_soa_status("Implementado", 100)
+        )
+        btn_quick_impl.pack(side=tk.LEFT, padx=3)
+
+        btn_quick_proc = tk.Button(
+            actions_bar,
+            text="🔄 En Proceso (50%)",
+            font=("Segoe UI", 8, "bold"),
+            bg="#F39C12",
+            fg="white",
+            relief=tk.FLAT,
+            padx=8,
+            pady=3,
+            command=lambda: self.action_quick_soa_status("En Proceso", 50)
+        )
+        btn_quick_proc.pack(side=tk.LEFT, padx=3)
+
+        btn_quick_plan = tk.Button(
+            actions_bar,
+            text="📅 Planificado (15%)",
+            font=("Segoe UI", 8),
+            bg="#34495E",
+            fg="white",
+            relief=tk.FLAT,
+            padx=8,
+            pady=3,
+            command=lambda: self.action_quick_soa_status("Planificado", 15)
+        )
+        btn_quick_plan.pack(side=tk.LEFT, padx=3)
+
+        # 3. Tabla SoA
+        cols = ("Código", "Nombre del Control", "Dominio", "Aplica", "Estado", "Madurez %", "Responsable", "Evidencia")
         self.tree_soa = ttk.Treeview(self.tab_soa, columns=cols, show="headings", selectmode="browse")
 
         self.tree_soa.heading("Código", text="Código")
@@ -585,14 +1101,16 @@ class SGSISOCApp(tk.Tk):
         self.tree_soa.heading("Estado", text="Estado")
         self.tree_soa.heading("Madurez %", text="Madurez %")
         self.tree_soa.heading("Responsable", text="Responsable")
+        self.tree_soa.heading("Evidencia", text="Evidencia Documental")
 
         self.tree_soa.column("Código", width=70, anchor="center")
-        self.tree_soa.column("Nombre del Control", width=280)
-        self.tree_soa.column("Dominio", width=160)
-        self.tree_soa.column("Aplica", width=60, anchor="center")
-        self.tree_soa.column("Estado", width=100, anchor="center")
-        self.tree_soa.column("Madurez %", width=80, anchor="center")
-        self.tree_soa.column("Responsable", width=150)
+        self.tree_soa.column("Nombre del Control", width=270)
+        self.tree_soa.column("Dominio", width=150)
+        self.tree_soa.column("Aplica", width=55, anchor="center")
+        self.tree_soa.column("Estado", width=95, anchor="center")
+        self.tree_soa.column("Madurez %", width=75, anchor="center")
+        self.tree_soa.column("Responsable", width=130)
+        self.tree_soa.column("Evidencia", width=130)
 
         scroll_y = ttk.Scrollbar(self.tab_soa, orient=tk.VERTICAL, command=self.tree_soa.yview)
         self.tree_soa.configure(yscrollcommand=scroll_y.set)
@@ -600,26 +1118,286 @@ class SGSISOCApp(tk.Tk):
         self.tree_soa.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(10, 0), pady=5)
         scroll_y.pack(side=tk.RIGHT, fill=tk.Y, padx=(0, 10), pady=5)
 
-    def load_soa_table(self):
+        # Doble clic para editar
+        self.tree_soa.bind("<Double-1>", lambda event: self.action_edit_soa_control())
+
+    def clear_soa_filters(self):
+        self.soa_search_entry.delete(0, tk.END)
+        self.soa_domain_cb.set("Todos los Dominios")
+        self.soa_state_cb.set("Todos los Estados")
+        self.filter_soa_table()
+
+    def filter_soa_table(self):
+        query = self.soa_search_entry.get().strip().lower()
+        domain_sel = self.soa_domain_cb.get().strip()
+        state_sel = self.soa_state_cb.get().strip()
+
         for item in self.tree_soa.get_children():
             self.tree_soa.delete(item)
 
-        soa_file = os.path.join("templates_google", "03_soa_iso27001_template.csv")
-        if not os.path.exists(soa_file):
+        soa_mgr = SoAManager()
+        controls = soa_mgr.get_all_controls()
+        count = 0
+
+        for r in controls:
+            code = r.get("Codigo_Control", "")
+            name = r.get("Nombre_Control", "")
+            dom = r.get("Dominio", "")
+            st = r.get("Estado_Implementacion", "")
+            resp = r.get("Responsable", "")
+
+            # Filtro texto
+            if query and (query not in code.lower() and query not in name.lower() and query not in resp.lower()):
+                continue
+
+            # Filtro dominio
+            if domain_sel != "Todos los Dominios" and dom != domain_sel:
+                continue
+
+            # Filtro estado
+            if state_sel != "Todos los Estados" and st != state_sel:
+                continue
+
+            self.tree_soa.insert("", tk.END, values=(
+                code,
+                name,
+                dom,
+                r.get("Aplica", ""),
+                st,
+                f"{r.get('Porcentaje_Madurez', '')}%",
+                resp,
+                r.get("Evidencia_Documental", "")
+            ))
+            count += 1
+
+        self.soa_count_lbl.config(text=f"{count} / {len(controls)} controles")
+
+    def load_soa_table(self):
+        self.filter_soa_table()
+
+    def action_quick_soa_status(self, status: str, maturity: int):
+        selected = self.tree_soa.selection()
+        if not selected:
+            messagebox.showwarning("Seleccionar Control", "Por favor selecciona uno o más controles de la tabla para aplicar el cambio rápido.")
             return
 
-        with open(soa_file, "r", encoding="utf-8-sig") as f:
-            reader = csv.DictReader(f)
-            for r in reader:
-                self.tree_soa.insert("", tk.END, values=(
-                    r.get("Codigo_Control", ""),
-                    r.get("Nombre_Control", ""),
-                    r.get("Dominio", ""),
-                    r.get("Aplica", ""),
-                    r.get("Estado_Implementacion", ""),
-                    f"{r.get('Porcentaje_Madurez', '')}%",
-                    r.get("Responsable", "")
-                ))
+        soa_mgr = SoAManager()
+        updated_codes = []
+        for s in selected:
+            item = self.tree_soa.item(s)
+            code = item["values"][0]
+            updated_codes.append(code)
+
+        count = soa_mgr.batch_set_status(updated_codes, status, maturity)
+        self.load_soa_table()
+
+        try:
+            DashboardGenerator().generate_all()
+        except:
+            pass
+
+        self.status_lbl.config(text=f"✅ {count} controles SoA actualizados a '{status}' ({maturity}%) ({datetime.now().strftime('%H:%M:%S')})", fg="#27AE60")
+
+    def action_edit_soa_control(self):
+        selected = self.tree_soa.selection()
+        if not selected:
+            messagebox.showwarning("Seleccionar Control", "Por favor selecciona un control de la tabla para editar.")
+            return
+
+        item = self.tree_soa.item(selected[0])
+        code = item["values"][0]
+
+        soa_mgr = SoAManager()
+        controls = soa_mgr.get_all_controls()
+        target_ctrl = None
+        for c in controls:
+            if c.get("Codigo_Control") == code:
+                target_ctrl = c
+                break
+
+        if not target_ctrl:
+            messagebox.showerror("Error", f"No se encontró el control {code}.")
+            return
+
+        self._open_soa_modal(target_ctrl)
+
+    def _open_soa_modal(self, ctrl: dict):
+        modal = tk.Toplevel(self)
+        code = ctrl.get("Codigo_Control", "")
+        modal.title(f"✏️ Administrar Control ISO 27001:2022 - {code}")
+        modal.geometry("680x590")
+        modal.minsize(640, 540)
+        modal.configure(bg=self.color_bg)
+        modal.grab_set()
+
+        # Header modal
+        hdr = tk.Frame(modal, bg=self.color_primary, padx=15, pady=10)
+        hdr.pack(fill=tk.X)
+        tk.Label(
+            hdr,
+            text=f"📜 Control {code}: {ctrl.get('Nombre_Control', '')}",
+            font=("Segoe UI", 11, "bold"),
+            bg=self.color_primary,
+            fg="white"
+        ).pack(anchor="w")
+        tk.Label(
+            hdr,
+            text=f"Dominio: {ctrl.get('Dominio', '')} | Declaración de Aplicabilidad (SoA)",
+            font=("Segoe UI", 8),
+            bg=self.color_primary,
+            fg="#D1D5DB"
+        ).pack(anchor="w")
+
+        form_frame = tk.Frame(modal, bg=self.color_bg, padx=15, pady=12)
+        form_frame.pack(fill=tk.BOTH, expand=True)
+
+        # 1. Aplica y Estado
+        row1 = tk.Frame(form_frame, bg=self.color_bg)
+        row1.pack(fill=tk.X, pady=6)
+
+        tk.Label(row1, text="¿Aplica al SGSI?:", font=("Segoe UI", 9, "bold"), bg=self.color_bg, width=15, anchor="w").pack(side=tk.LEFT)
+        cb_aplica = ttk.Combobox(row1, values=["SI", "NO"], font=("Segoe UI", 9), width=8, state="readonly")
+        cb_aplica.set(ctrl.get("Aplica", "SI"))
+        cb_aplica.pack(side=tk.LEFT, padx=(0, 20))
+
+        tk.Label(row1, text="Estado de Implementación:", font=("Segoe UI", 9, "bold"), bg=self.color_bg, width=22, anchor="w").pack(side=tk.LEFT)
+        cb_state = ttk.Combobox(row1, values=["Implementado", "En Proceso", "Planificado", "No Aplica"], font=("Segoe UI", 9), width=15, state="readonly")
+        cb_state.set(ctrl.get("Estado_Implementacion", "Planificado"))
+        cb_state.pack(side=tk.LEFT)
+
+        # 2. Madurez % con Slider
+        row2 = tk.Frame(form_frame, bg=self.color_bg)
+        row2.pack(fill=tk.X, pady=6)
+
+        tk.Label(row2, text="Porcentaje Madurez:", font=("Segoe UI", 9, "bold"), bg=self.color_bg, width=16, anchor="w").pack(side=tk.LEFT)
+        
+        mad_init = 50
+        try:
+            mad_init = int(float(str(ctrl.get("Porcentaje_Madurez", "50")).replace("%", "").strip()))
+        except:
+            mad_init = 50
+
+        lbl_mad_val = tk.Label(row2, text=f"{mad_init}%", font=("Segoe UI", 10, "bold"), bg=self.color_bg, fg="#2980B9", width=6)
+
+        def on_mad_slider(val):
+            lbl_mad_val.config(text=f"{int(float(val))}%")
+
+        scale_mad = ttk.Scale(row2, from_=0, to=100, orient=tk.HORIZONTAL, value=mad_init, command=on_mad_slider)
+        scale_mad.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 8))
+        lbl_mad_val.pack(side=tk.LEFT)
+
+        # Sincronizar estado con slider automáticamente
+        def on_state_change(event):
+            st = cb_state.get()
+            if st == "Implementado":
+                scale_mad.set(100)
+                cb_aplica.set("SI")
+            elif st == "En Proceso":
+                scale_mad.set(50)
+                cb_aplica.set("SI")
+            elif st == "Planificado":
+                scale_mad.set(15)
+                cb_aplica.set("SI")
+            elif st == "No Aplica":
+                scale_mad.set(0)
+                cb_aplica.set("NO")
+            lbl_mad_val.config(text=f"{int(scale_mad.get())}%")
+
+        cb_state.bind("<<ComboboxSelected>>", on_state_change)
+
+        # 3. Responsable
+        row3 = tk.Frame(form_frame, bg=self.color_bg)
+        row3.pack(fill=tk.X, pady=6)
+        tk.Label(row3, text="Responsable / Custodio:", font=("Segoe UI", 9, "bold"), bg=self.color_bg, width=18, anchor="w").pack(side=tk.LEFT)
+        e_resp = tk.Entry(row3, font=("Segoe UI", 9))
+        e_resp.insert(0, ctrl.get("Responsable", "Equipo de Seguridad / CISO"))
+        e_resp.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        # 4. Justificación de Inclusión / Exclusión
+        row4 = tk.Frame(form_frame, bg=self.color_bg)
+        row4.pack(fill=tk.X, pady=6)
+        tk.Label(row4, text="Justificación SoA:", font=("Segoe UI", 9, "bold"), bg=self.color_bg, width=18, anchor="w").pack(side=tk.LEFT)
+        e_just = tk.Entry(row4, font=("Segoe UI", 9))
+        e_just.insert(0, ctrl.get("Justificacion_Inclusion_Exclusion", "Requisito mandatorio de gestion y reduccion de riesgos"))
+        e_just.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        # 5. Evidencia Documental
+        row5 = tk.Frame(form_frame, bg=self.color_bg)
+        row5.pack(fill=tk.X, pady=6)
+        tk.Label(row5, text="Evidencia Documental:", font=("Segoe UI", 9, "bold"), bg=self.color_bg, width=18, anchor="w").pack(side=tk.LEFT)
+        e_evid = tk.Entry(row5, font=("Segoe UI", 9))
+        e_evid.insert(0, ctrl.get("Evidencia_Documental", f"Doc-Ref-{code.replace('.', '_')}.pdf"))
+        e_evid.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        # 6. Tarjeta de Resumen SoA
+        f_info = tk.LabelFrame(form_frame, text=" ℹ️ Directriz de Cumplimiento ISO/IEC 27001:2022 ", font=("Segoe UI", 8, "bold"), bg=self.color_card, padx=10, pady=8)
+        f_info.pack(fill=tk.X, pady=10)
+        tk.Label(
+            f_info,
+            text=f"El control {code} pertenece a la categoría de {ctrl.get('Dominio', '')}.\n"
+                 f"Al cambiar el estado o la madurez, los Dashboards CISO y Dirección se actualizarán automáticamente en tiempo real.",
+            font=("Segoe UI", 8),
+            bg=self.color_card,
+            fg="#555555",
+            justify=tk.LEFT
+        ).pack(anchor="w")
+
+        # Botones Guardar / Cancelar
+        btn_box = tk.Frame(modal, bg=self.color_bg, pady=10)
+        btn_box.pack(fill=tk.X, side=tk.BOTTOM)
+
+        def save_soa_changes():
+            aplica = cb_aplica.get().strip()
+            estado = cb_state.get().strip()
+            madurez = int(scale_mad.get())
+            responsable = e_resp.get().strip()
+            justificacion = e_just.get().strip()
+            evidencia = e_evid.get().strip()
+
+            updated = {
+                "Aplica": aplica,
+                "Estado_Implementacion": estado,
+                "Porcentaje_Madurez": str(madurez),
+                "Responsable": responsable,
+                "Justificacion_Inclusion_Exclusion": justificacion,
+                "Evidencia_Documental": evidencia
+            }
+
+            soa_mgr = SoAManager()
+            if soa_mgr.update_control(code, updated):
+                self.load_soa_table()
+                try:
+                    DashboardGenerator().generate_all()
+                except:
+                    pass
+                messagebox.showinfo("Control Actualizado", f"¡El control {code} ha sido actualizado correctamente!", parent=modal)
+                modal.destroy()
+            else:
+                messagebox.showerror("Error", "No se pudo actualizar el control.", parent=modal)
+
+        tk.Button(
+            btn_box,
+            text="💾 Guardar Cambios",
+            font=("Segoe UI", 10, "bold"),
+            bg="#27AE60",
+            fg="white",
+            relief=tk.FLAT,
+            padx=18,
+            pady=6,
+            command=save_soa_changes
+        ).pack(side=tk.RIGHT, padx=15)
+
+        tk.Button(
+            btn_box,
+            text="Cancelar",
+            font=("Segoe UI", 9),
+            bg="#BDC3C7",
+            fg="#2C3E50",
+            relief=tk.FLAT,
+            padx=12,
+            pady=6,
+            command=modal.destroy
+        ).pack(side=tk.RIGHT, padx=5)
 
     # -------------------------------------------------------------------------
     # ACCIONES DE DASHBOARDS EN VIVO

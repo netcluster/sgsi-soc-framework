@@ -1,3 +1,5 @@
 {
-  "test": 123
+  "webhook_url": "https://script.google.com/macros/s/AKfycbxzo8a44aHmNW7sDKwWQm9dj6kqrigWviYPniH43Dvryo3YMbAeW7Z965NIPFocQtR8fg/exec",
+  "sheet_name": "SGSI",
+  "last_test": "2026-09-15T11:24:25.964512"
 }

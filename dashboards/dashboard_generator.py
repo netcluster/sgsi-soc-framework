@@ -32,6 +32,26 @@ COLOR_PRIMARY  = "#0F172A"   # Azul Medianoche - Texto / Jerarquía Principal
 COLOR_ACCENT   = "#2563EB"   # Azul Técnico - Métricas de Telemetría
 COLOR_GRID     = "#E2E8F0"   # Rejilla sutil para alto ratio Data-Ink
 
+# Configuración Plotly limpia (sin barra de herramientas ni logo de Plotly)
+PLOTLY_CONFIG = {
+    'displayModeBar': False,
+    'displaylogo': False,
+    'responsive': True
+}
+
+def get_severity_badge_color(sev: str) -> str:
+    """Mapeo semiótico estricto e insensible a mayúsculas/tildes"""
+    s = str(sev).strip().lower()
+    if any(k in s for k in ["crit", "crít", "urgente", "emerg"]):
+        return COLOR_CRITICAL   # #DC2626 (Rojo)
+    elif any(k in s for k in ["alt", "high"]):
+        return COLOR_HIGH       # #EA580C (Naranja)
+    elif any(k in s for k in ["med", "mod"]):
+        return COLOR_MEDIUM     # #F59E0B (Ámbar)
+    elif any(k in s for k in ["baj", "low", "info"]):
+        return COLOR_LOW        # #10B981 (Verde)
+    return COLOR_MEDIUM
+
 class DashboardGenerator:
     def __init__(self, templates_dir: str = None, output_dir: str = None):
         base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -137,7 +157,7 @@ class DashboardGenerator:
             yaxis=dict(showgrid=True, gridcolor=COLOR_GRID, zeroline=False),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=10))
         )
-        html_timeline = fig_timeline.to_html(full_html=False, include_plotlyjs=False)
+        html_timeline = fig_timeline.to_html(full_html=False, include_plotlyjs=False, config=PLOTLY_CONFIG)
 
         # ---------------------------------------------------------------------
         # GRÁFICO 2: TOP TÁCTICAS Y TÉCNICAS MITRE ATT&CK
@@ -177,7 +197,7 @@ class DashboardGenerator:
             plot_bgcolor='rgba(0,0,0,0)',
             font=dict(family="Segoe UI, Arial", size=10, color=COLOR_PRIMARY)
         )
-        html_mitre = fig_mitre.to_html(full_html=False, include_plotlyjs=False)
+        html_mitre = fig_mitre.to_html(full_html=False, include_plotlyjs=False, config=PLOTLY_CONFIG)
 
         # ---------------------------------------------------------------------
         # GRÁFICO 3: MATRIZ DE RIESGOS ISO 27005 (INHERENTE -> RESIDUAL)
@@ -227,7 +247,7 @@ class DashboardGenerator:
             font=dict(family="Segoe UI, Arial", size=10, color=COLOR_PRIMARY),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=10))
         )
-        html_risk = fig_risk.to_html(full_html=False, include_plotlyjs=False)
+        html_risk = fig_risk.to_html(full_html=False, include_plotlyjs=False, config=PLOTLY_CONFIG)
 
         # ---------------------------------------------------------------------
         # GRÁFICO 4: DISTRIBUCIÓN SEMIÓTICA POR SEVERIDAD
@@ -256,7 +276,7 @@ class DashboardGenerator:
             font=dict(family="Segoe UI, Arial", size=11, color=COLOR_PRIMARY),
             legend=dict(orientation="v", yanchor="middle", y=0.5, xanchor="right", x=1.1, font=dict(size=10))
         )
-        html_sev = fig_sev.to_html(full_html=False, include_plotlyjs=False)
+        html_sev = fig_sev.to_html(full_html=False, include_plotlyjs=False, config=PLOTLY_CONFIG)
 
         # ---------------------------------------------------------------------
         # TABLA DE TELEMETRÍA SOC (DRILLDOWN - ÚLTIMOS INCIDENTES)
@@ -264,7 +284,7 @@ class DashboardGenerator:
         table_rows = ""
         for inc in reversed(incidents[-10:]):
             sev = inc.get("Severidad", "Media")
-            badge_bg = COLOR_CRITICAL if "Crit" in sev else (COLOR_HIGH if "Alt" in sev else (COLOR_MEDIUM if "Med" in sev else COLOR_LOW))
+            badge_bg = get_severity_badge_color(sev)
             src_host = inc.get("Host_Origen") or inc.get("src_host") or inc.get("Usuario_Involucrado", "-")
             dst_ip = inc.get("IP_Destino") or inc.get("IP_Destino_Activo", "-")
             dst_host = inc.get("Host_Destino") or inc.get("IP_Destino_Activo", "-")
@@ -448,7 +468,7 @@ class DashboardGenerator:
             paper_bgcolor='rgba(0,0,0,0)',
             font=dict(family="Segoe UI, Arial", size=11, color=COLOR_PRIMARY)
         )
-        html_gauge = fig_gauge.to_html(full_html=False, include_plotlyjs=False)
+        html_gauge = fig_gauge.to_html(full_html=False, include_plotlyjs=False, config=PLOTLY_CONFIG)
 
         # ---------------------------------------------------------------------
         # GRÁFICO 2: REDUCCIÓN DEL RIESGO CORPORATIVO (INHERENTE VS RESIDUAL)
@@ -489,7 +509,7 @@ class DashboardGenerator:
             font=dict(family="Segoe UI, Arial", size=10, color=COLOR_PRIMARY),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=10))
         )
-        html_risk_reduction = fig_risk_reduction.to_html(full_html=False, include_plotlyjs=False)
+        html_risk_reduction = fig_risk_reduction.to_html(full_html=False, include_plotlyjs=False, config=PLOTLY_CONFIG)
 
         # ---------------------------------------------------------------------
         # GRÁFICO 3: ESTADO DE CONTROLES POR DOMINIO ISO 27001
@@ -536,7 +556,7 @@ class DashboardGenerator:
             font=dict(family="Segoe UI, Arial", size=10, color=COLOR_PRIMARY),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=10))
         )
-        html_states = fig_states.to_html(full_html=False, include_plotlyjs=False)
+        html_states = fig_states.to_html(full_html=False, include_plotlyjs=False, config=PLOTLY_CONFIG)
 
         # ---------------------------------------------------------------------
         # GRÁFICO 4: INVENTARIO DE ACTIVOS POR CRITICIDAD
@@ -568,7 +588,7 @@ class DashboardGenerator:
             font=dict(family="Segoe UI, Arial", size=11, color=COLOR_PRIMARY),
             legend=dict(orientation="v", yanchor="middle", y=0.5, xanchor="right", x=1.1, font=dict(size=10))
         )
-        html_activos = fig_activos.to_html(full_html=False, include_plotlyjs=False)
+        html_activos = fig_activos.to_html(full_html=False, include_plotlyjs=False, config=PLOTLY_CONFIG)
 
         impl_count = sum(1 for c in soa if c.get('Estado_Implementacion') == 'Implementado')
 

@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 """
 Aplicación de Escritorio Nativa de Windows para el SGSI & SOC Framework.
-Desarrollada con Tkinter / TTK (100% nativa, sin dependencias externas pesadas).
-Incluye receptor Syslog en vivo, dashboards CISO/Dirección y sincronización Google.
+Incluye Servidor en Vivo 100% Automatizado (se inicia en segundo plano automáticamente),
+receptor Syslog y dashboards en tiempo real.
 """
 
 import os
 import sys
 import csv
+import socket
 import threading
 import webbrowser
 import tkinter as tk
@@ -23,6 +24,7 @@ from soc_engine.threat_detector import ThreatDetector
 from soc_engine.syslog_collector import SyslogCollector
 from simulators.generate_sample_telemetry import simulate_soc_activity
 from dashboards.dashboard_generator import DashboardGenerator
+from dashboards.live_server import LiveDashboardHandler, HTTPServer
 
 class SGSISOCApp(tk.Tk):
     def __init__(self):
@@ -32,7 +34,7 @@ class SGSISOCApp(tk.Tk):
         self.geometry("1180x750")
         self.minsize(980, 620)
         
-        # Configurar colores institucionales
+        # Colores institucionales
         self.color_primary = "#1B365D"    # Azul institucional
         self.color_accent = "#2980B9"     # Azul brillante
         self.color_bg = "#F4F7F9"         # Fondo claro
@@ -40,11 +42,13 @@ class SGSISOCApp(tk.Tk):
 
         self.configure(bg=self.color_bg)
 
-        # Estado del colector Syslog
+        # Estado del colector Syslog y Servidor Live
         self.syslog_collector = None
         self.syslog_thread = None
+        self.live_server = None
+        self.live_server_port = 8080
 
-        # Configurar estilos TTK
+        # Estilos TTK
         self.style = ttk.Style(self)
         self.style.theme_use("clam")
         
@@ -53,11 +57,29 @@ class SGSISOCApp(tk.Tk):
         self._create_tabs()
         self._create_footer()
 
+        # Iniciar Servidor en Vivo automáticamente en segundo plano
+        self._auto_start_live_server()
+
         # Cargar datos iniciales
         self.refresh_kpis()
         self.load_incidents_table()
         self.load_risks_table()
         self.load_soa_table()
+
+    def _is_port_in_use(self, port: int) -> bool:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            return s.connect_ex(('127.0.0.1', port)) == 0
+
+    def _auto_start_live_server(self):
+        """Inicia el servidor de Dashboards en vivo en un hilo de fondo si no está activo"""
+        if not self._is_port_in_use(self.live_server_port):
+            try:
+                self.live_server = HTTPServer(('0.0.0.0', self.live_server_port), LiveDashboardHandler)
+                server_thread = threading.Thread(target=self.live_server.serve_forever, daemon=True)
+                server_thread.start()
+                print(f"[Auto-Live Server] Servidor en vivo iniciado automáticamente en puerto {self.live_server_port}.")
+            except Exception as e:
+                print(f"[Auto-Live Server] Error al iniciar servidor automático: {e}")
 
     def _configure_styles(self):
         self.style.configure("TNotebook", background=self.color_bg, borderwidth=0)
@@ -84,10 +106,9 @@ class SGSISOCApp(tk.Tk):
         )
         title_lbl.pack(side=tk.LEFT, padx=15, pady=12)
 
-        # Botones de Dashboards
         ciso_btn = tk.Button(
             header_frame,
-            text="🛡️ Dashboard CISO",
+            text="🛡️ Dashboard CISO (En Vivo)",
             font=("Segoe UI", 9, "bold"),
             bg="#8E44AD",
             fg="white",
@@ -100,7 +121,7 @@ class SGSISOCApp(tk.Tk):
 
         dir_btn = tk.Button(
             header_frame,
-            text="👔 Dashboard Dirección",
+            text="👔 Dashboard Dirección (En Vivo)",
             font=("Segoe UI", 9, "bold"),
             bg="#2980B9",
             fg="white",
@@ -154,10 +175,10 @@ class SGSISOCApp(tk.Tk):
 
         self.status_lbl = tk.Label(
             footer_frame,
-            text="Listo | Receptor Syslog: Inactivo (Puerto UDP 1514 disponible)",
+            text=f"🟢 Servidor en Vivo Activo: http://localhost:{self.live_server_port} | Syslog: UDP 1514 disponible",
             font=("Segoe UI", 8),
             bg="#E2E8F0",
-            fg="#555555"
+            fg="#27AE60"
         )
         self.status_lbl.pack(side=tk.LEFT, padx=15, pady=4)
 
@@ -187,7 +208,7 @@ class SGSISOCApp(tk.Tk):
 
         btn_ciso_dash = tk.Button(
             launch_frame,
-            text="🛡️ Abrir Dashboard Interactivo del CISO (Gráficos MITRE / Riesgos / SOC)",
+            text="🛡️ Abrir Dashboard CISO en Vivo (Auto-actualizable en Navegador)",
             font=("Segoe UI", 10, "bold"),
             bg="#8E44AD",
             fg="white",
@@ -200,7 +221,7 @@ class SGSISOCApp(tk.Tk):
 
         btn_dir_dash = tk.Button(
             launch_frame,
-            text="👔 Abrir Dashboard de la Dirección del Servicio (Cumplimiento ISO / Negocio)",
+            text="👔 Abrir Dashboard Dirección en Vivo (Auto-actualizable en Navegador)",
             font=("Segoe UI", 10, "bold"),
             bg="#1B365D",
             fg="white",
@@ -554,17 +575,15 @@ class SGSISOCApp(tk.Tk):
                 ))
 
     # -------------------------------------------------------------------------
-    # ACCIONES DE DASHBOARDS PYTHON
+    # ACCIONES DE DASHBOARDS EN VIVO
     # -------------------------------------------------------------------------
     def action_open_ciso_dashboard(self):
-        generator = DashboardGenerator()
-        path = generator.generate_ciso_dashboard()
-        webbrowser.open(f"file:///{os.path.abspath(path)}")
+        self._auto_start_live_server()
+        webbrowser.open(f"http://localhost:{self.live_server_port}/ciso")
 
     def action_open_direccion_dashboard(self):
-        generator = DashboardGenerator()
-        path = generator.generate_direccion_dashboard()
-        webbrowser.open(f"file:///{os.path.abspath(path)}")
+        self._auto_start_live_server()
+        webbrowser.open(f"http://localhost:{self.live_server_port}/direccion")
 
     # -------------------------------------------------------------------------
     # ACCIÓN SINCRONIZAR

@@ -59,6 +59,38 @@ class IncidentManager:
 
         return incident_id
 
+    def update_incident(self, incident_id: str, updated_data: Dict[str, Any]) -> bool:
+        """Actualiza un incidente existente (resolución, estado, acción correctiva, MTTR)."""
+        incidents = self.get_all_incidents()
+        found = False
+        for idx, inc in enumerate(incidents):
+            if inc.get("ID_Incidente", "").strip() == incident_id.strip():
+                for k, v in updated_data.items():
+                    if k != "ID_Incidente":
+                        incidents[idx][k] = str(v)
+                found = True
+                break
+
+        if not found:
+            return False
+
+        if incidents:
+            fieldnames = list(incidents[0].keys())
+            with open(self.incidents_csv, mode='w', newline='', encoding='utf-8-sig') as f:
+                writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction='ignore')
+                writer.writeheader()
+                writer.writerows(incidents)
+
+            sync_target = os.path.join("sync_drive", "04_registro_incidentes.csv")
+            try:
+                import shutil
+                os.makedirs(os.path.dirname(sync_target), exist_ok=True)
+                shutil.copy2(self.incidents_csv, sync_target)
+            except:
+                pass
+
+        return True
+
     def compute_kpis(self) -> Dict[str, Any]:
         """Calcula KPIs clave del SOC (MTTD, MTTR, severidad, estado y tipos de amenaza)"""
         incidents = self.get_all_incidents()

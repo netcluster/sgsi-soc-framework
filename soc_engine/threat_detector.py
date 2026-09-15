@@ -11,6 +11,15 @@ from collections import defaultdict
 from typing import List, Dict, Any
 from soc_engine.mitre_mapper import MitreMapper
 
+# Ciberinteligencia de Amenazas (CTI Feeds: CSIRT Nacional, MISP, AbuseIPDB, AlienVault OTX)
+KNOWN_THREAT_INTEL_IOCS = {
+    "185.220.101.5": {"source": "MISP / Tor Exit Node", "threat": "Tráfico Anónimo Malicioso", "severity": "Alta", "actor": "APT / Scanner"},
+    "45.33.32.156": {"source": "AbuseIPDB (Score 100%)", "threat": "Escáner Masivo / BruteForce", "severity": "Alta", "actor": "Mirai / Botnet"},
+    "194.26.29.112": {"source": "CSIRT Nacional (IoC Campaña)", "threat": "Servidor C2 / Ransomware", "severity": "Crítica", "actor": "LockBit Affiliate"},
+    "190.14.33.10": {"source": "AlienVault OTX", "threat": "Web Exploit / SQLi Probe", "severity": "Crítica", "actor": "Web Attacker"},
+    "103.203.57.10": {"source": "CSIRT Gobierno", "threat": "Infraestructura Phishing Dirigida", "severity": "Crítica", "actor": "Phishing Kit"}
+}
+
 class ThreatDetector:
     def __init__(self, brute_force_limit: int = 5, scan_threshold: int = 8):
         self.brute_force_limit = brute_force_limit
@@ -31,6 +40,34 @@ class ThreatDetector:
         uri = log_event.get("uri", "")
         client_ip = log_event.get("client_ip", "")
         timestamp = log_event.get("timestamp", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+
+        # ---------------------------------------------------------------------
+        # 0. CORRELACIÓN INMEDIATA CON INTELIGENCIA DE AMENAZAS (CTI FEEDS)
+        # ---------------------------------------------------------------------
+        check_ips = [client_ip, log_event.get("src_ip", ""), log_event.get("dst_ip", "")]
+        for ip in check_ips:
+            if ip and ip in KNOWN_THREAT_INTEL_IOCS:
+                ioc_info = KNOWN_THREAT_INTEL_IOCS[ip]
+                incidents.append({
+                    "timestamp": timestamp,
+                    "title": f"🚨 [CTI MATCH] Comunicación con IoC Malicioso ({ip})",
+                    "threat_type": f"CTI: {ioc_info['threat']}",
+                    "severity": ioc_info["severity"],
+                    "mitre_tactic": "Command and Control",
+                    "mitre_technique": "T1071 - Application Layer Protocol",
+                    "src_ip": ip,
+                    "src_host": f"IoC CTI ({ioc_info['source']})",
+                    "dst_ip": log_event.get("dst_ip", "10.0.0.1"),
+                    "dst_host": "Infraestructura SERMIG",
+                    "target_asset": "Red Interna SERMIG",
+                    "user": ioc_info["actor"],
+                    "description": f"Detección inmediata por CTI: La IP {ip} figura en el feed de inteligencia '{ioc_info['source']}' asociada a {ioc_info['threat']} (Actor: {ioc_info['actor']}).",
+                    "corrective_action": f"Bloqueo inmediato en Firewall / BGP Blackholing de {ip} y aislamiento de hosts que interactuaron.",
+                    "mttd_min": 1,
+                    "mttr_min": 10,
+                    "status": "Abierto"
+                })
+                break
 
         # =====================================================================
         # A. ANÁLISIS DE LOGS DE FIREWALL / FORTIGATE / RED

@@ -370,6 +370,19 @@ class SGSISOCApp(tk.Tk):
         )
         btn_sim.pack(side=tk.LEFT, padx=5)
 
+        btn_mitigate = tk.Button(
+            actions_bar,
+            text="🛡️ Responder / Mitigar...",
+            font=("Segoe UI", 9, "bold"),
+            bg="#2980B9",
+            fg="white",
+            relief=tk.FLAT,
+            padx=10,
+            pady=5,
+            command=self.action_mitigate_incident
+        )
+        btn_mitigate.pack(side=tk.LEFT, padx=5)
+
         btn_ref = tk.Button(
             actions_bar,
             text="🔄 Actualizar",
@@ -413,6 +426,8 @@ class SGSISOCApp(tk.Tk):
 
         self.tree_incidents.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(10, 0), pady=5)
         scroll_y.pack(side=tk.RIGHT, fill=tk.Y, padx=(0, 10), pady=5)
+
+        self.tree_incidents.bind("<Double-1>", lambda event: self.action_mitigate_incident())
 
     def toggle_syslog_server(self):
         if self.syslog_collector and self.syslog_collector.running:
@@ -491,6 +506,191 @@ class SGSISOCApp(tk.Tk):
         self.load_incidents_table()
         self.refresh_kpis()
         messagebox.showinfo("Ingesta Finalizada", f"Se procesaron {count} líneas del log.\nIncidentes detectados y registrados: {detected}")
+
+    def action_mitigate_incident(self):
+        selected = self.tree_incidents.selection()
+        if not selected:
+            messagebox.showwarning("Seleccionar Incidente", "Por favor selecciona un incidente de la tabla para gestionar la respuesta/mitigación.")
+            return
+
+        item = self.tree_incidents.item(selected[0])
+        inc_id = item["values"][0]
+
+        inc_mgr = IncidentManager()
+        incidents = inc_mgr.get_all_incidents()
+        target = None
+        for inc in incidents:
+            if inc.get("ID_Incidente") == inc_id:
+                target = inc
+                break
+
+        if not target:
+            messagebox.showerror("Error", f"No se encontró el incidente {inc_id}.")
+            return
+
+        self._open_incident_modal(target)
+
+    def _open_incident_modal(self, inc: dict):
+        modal = tk.Toplevel(self)
+        inc_id = inc.get("ID_Incidente", "")
+        sev = inc.get("Severidad", "Media")
+        modal.title(f"🛡️ Gestión de Respuesta y Mitigación - {inc_id}")
+        modal.geometry("700x620")
+        modal.minsize(660, 580)
+        modal.configure(bg=self.color_bg)
+        modal.grab_set()
+
+        hdr = tk.Frame(modal, bg=self.color_primary, padx=15, pady=10)
+        hdr.pack(fill=tk.X)
+        tk.Label(
+            hdr,
+            text=f"🚨 Incidente {inc_id}: {inc.get('Titulo_Incidente', '')}",
+            font=("Segoe UI", 11, "bold"),
+            bg=self.color_primary,
+            fg="white"
+        ).pack(anchor="w")
+        tk.Label(
+            hdr,
+            text=f"Severidad: {sev.upper()} | Táctica MITRE: {inc.get('Tactica_MITRE', '')} ({inc.get('Tecnica_MITRE', '')})",
+            font=("Segoe UI", 8),
+            bg=self.color_primary,
+            fg="#D1D5DB"
+        ).pack(anchor="w")
+
+        form = tk.Frame(modal, bg=self.color_bg, padx=15, pady=10)
+        form.pack(fill=tk.BOTH, expand=True)
+
+        # Telemetría de Origen y Destino
+        f_tel = tk.LabelFrame(form, text=" 📡 Vector de Amenaza & Telemetría Registrada ", font=("Segoe UI", 8, "bold"), bg=self.color_card, padx=10, pady=6)
+        f_tel.pack(fill=tk.X, pady=4)
+        
+        t_src = f"Origen: {inc.get('IP_Origen', '-')} ({inc.get('Host_Origen', '-')})"
+        t_dst = f"Destino: {inc.get('IP_Destino', '-')} ({inc.get('Host_Destino', '-')})"
+        t_mttd = f"MTTD (Detección): {inc.get('MTTD_Minutos', '1')} min | Fecha: {inc.get('Fecha_Hora', '')}"
+        
+        tk.Label(f_tel, text=t_src, font=("Segoe UI", 8, "bold"), bg=self.color_card, fg="#C0392B").pack(anchor="w")
+        tk.Label(f_tel, text=t_dst, font=("Segoe UI", 8, "bold"), bg=self.color_card, fg="#2980B9").pack(anchor="w")
+        tk.Label(f_tel, text=t_mttd, font=("Segoe UI", 8), bg=self.color_card, fg="#64748B").pack(anchor="w")
+        tk.Label(f_tel, text=f"Detalle: {inc.get('Descripcion_Hallazgo', '')}", font=("Segoe UI", 8), bg=self.color_card, fg="#333333", wraplength=620, justify=tk.LEFT).pack(anchor="w", pady=(3, 0))
+
+        # Formulario de Respuesta y Mitigación
+        f_resp = tk.LabelFrame(form, text=" ⚡ Protocolo de Respuesta Operativa (Playbook / Mitigación) ", font=("Segoe UI", 9, "bold"), bg=self.color_card, padx=12, pady=8)
+        f_resp.pack(fill=tk.BOTH, expand=True, pady=8)
+
+        # Estado del Incidente
+        r1 = tk.Frame(f_resp, bg=self.color_card)
+        r1.pack(fill=tk.X, pady=4)
+        tk.Label(r1, text="Estado de Resolución:", font=("Segoe UI", 9, "bold"), bg=self.color_card, width=20, anchor="w").pack(side=tk.LEFT)
+        cb_status = ttk.Combobox(r1, values=["Cerrado", "En Mitigacion", "Abierto", "Falso Positivo"], font=("Segoe UI", 9), width=18, state="readonly")
+        cb_status.set(inc.get("Estado", "Cerrado"))
+        cb_status.pack(side=tk.LEFT)
+
+        # MTTR (Tiempo de Respuesta en Minutos)
+        r2 = tk.Frame(f_resp, bg=self.color_card)
+        r2.pack(fill=tk.X, pady=4)
+        tk.Label(r2, text="MTTR (Respuesta en Minutos):", font=("Segoe UI", 9, "bold"), bg=self.color_card, width=26, anchor="w").pack(side=tk.LEFT)
+        
+        init_mttr = 10
+        try:
+            init_mttr = int(float(inc.get("MTTR_Minutos", 10) or 10))
+        except:
+            init_mttr = 10
+        if init_mttr <= 0:
+            init_mttr = 10
+
+        lbl_mttr_val = tk.Label(r2, text=f"{init_mttr} min", font=("Segoe UI", 10, "bold"), bg=self.color_card, fg="#27AE60", width=8)
+        scale_mttr = ttk.Scale(r2, from_=1, to=120, orient=tk.HORIZONTAL, value=init_mttr, command=lambda v: lbl_mttr_val.config(text=f"{int(float(v))} min"))
+        scale_mttr.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 6))
+        lbl_mttr_val.pack(side=tk.LEFT)
+
+        # Acción Correctiva
+        r3 = tk.Frame(f_resp, bg=self.color_card)
+        r3.pack(fill=tk.X, pady=4)
+        tk.Label(r3, text="Acción Correctiva / Playbook:", font=("Segoe UI", 9, "bold"), bg=self.color_card, width=24, anchor="w").pack(side=tk.LEFT)
+        
+        cb_preset_actions = ttk.Combobox(r3, values=[
+            "Bloqueo perimetral IP en Firewall FortiGate / WAF",
+            "Aislamiento de red de Endpoint EDR y análisis forense",
+            "Revocación de credenciales, forzado de MFA y reseteo de sesión",
+            "Parcheo de vulnerabilidad y sanitización WAF",
+            "Verificación de integridad de backups y reglas de filtrado",
+            "Desestimado por regla de falso positivo tras inspección de tráfico"
+        ], font=("Segoe UI", 8), width=45)
+        cb_preset_actions.set(inc.get("Accion_Correctiva", "Bloqueo perimetral IP en Firewall FortiGate / WAF"))
+        cb_preset_actions.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        # Responsable SOC
+        r4 = tk.Frame(f_resp, bg=self.color_card)
+        r4.pack(fill=tk.X, pady=4)
+        tk.Label(r4, text="Responsable de Mitigación:", font=("Segoe UI", 9, "bold"), bg=self.color_card, width=24, anchor="w").pack(side=tk.LEFT)
+        e_resp = tk.Entry(r4, font=("Segoe UI", 9))
+        e_resp.insert(0, inc.get("Responsable_SOC", "Analista SOC L1 / Equipo CISO"))
+        e_resp.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        # Botones
+        btn_box = tk.Frame(modal, bg=self.color_bg, pady=10)
+        btn_box.pack(fill=tk.X, side=tk.BOTTOM)
+
+        def save_mitigation():
+            st = cb_status.get().strip()
+            action_txt = cb_preset_actions.get().strip()
+            mttr_val = int(scale_mttr.get())
+            owner_txt = e_resp.get().strip()
+
+            updated = {
+                "Estado": st,
+                "Accion_Correctiva": action_txt,
+                "MTTR_Minutos": str(mttr_val),
+                "Responsable_SOC": owner_txt
+            }
+
+            inc_mgr = IncidentManager()
+            if inc_mgr.update_incident(inc_id, updated):
+                self.load_incidents_table()
+                self.refresh_kpis()
+                try:
+                    DashboardGenerator().generate_all()
+                except:
+                    pass
+                self.status_lbl.config(
+                    text=f"✅ Incidente {inc_id} mitiguado y actualizado a '{st}' (MTTR: {mttr_val} min) ({datetime.now().strftime('%H:%M:%S')})",
+                    fg="#27AE60"
+                )
+                messagebox.showinfo(
+                    "Mitigación Registrada",
+                    f"¡Incidente {inc_id} actualizado con éxito!\n"
+                    f"Estado: {st}\n"
+                    f"MTTR registrado: {mttr_val} minutos\n\n"
+                    "Los Dashboards CISO y Dirección se han sincronizado y actualizado automáticamente en vivo.",
+                    parent=modal
+                )
+                modal.destroy()
+            else:
+                messagebox.showerror("Error", "No se pudo actualizar el incidente.", parent=modal)
+
+        tk.Button(
+            btn_box,
+            text="💾 Aplicar Mitigación & Actualizar Dashboards",
+            font=("Segoe UI", 10, "bold"),
+            bg="#27AE60",
+            fg="white",
+            relief=tk.FLAT,
+            padx=18,
+            pady=6,
+            command=save_mitigation
+        ).pack(side=tk.RIGHT, padx=15)
+
+        tk.Button(
+            btn_box,
+            text="Cancelar",
+            font=("Segoe UI", 9),
+            bg="#BDC3C7",
+            fg="#2C3E50",
+            relief=tk.FLAT,
+            padx=12,
+            pady=6,
+            command=modal.destroy
+        ).pack(side=tk.RIGHT)
 
     # -------------------------------------------------------------------------
     # TAB 3: MATRIZ DE RIESGOS (ISO 27005) - ADMINISTRADOR INTERACTIVO

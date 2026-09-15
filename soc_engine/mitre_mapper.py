@@ -21,8 +21,26 @@ class MitreMapper:
         "port_scan": {
             "tactic": "Reconnaissance",
             "technique": "T1046 - Network Service Scanning",
-            "threat_type": "Reconocimiento",
-            "severity": "Baja"
+            "threat_type": "Reconocimiento de Red",
+            "severity": "Media"
+        },
+        "cloud_metadata_probe": {
+            "tactic": "Credential Access",
+            "technique": "T1552.005 - Cloud Instance Metadata API",
+            "threat_type": "Sondeo de Metadatos Cloud / SSRF",
+            "severity": "Crítica"
+        },
+        "firewall_connection_failure": {
+            "tactic": "Reconnaissance",
+            "technique": "T1046 - Network Service Discovery",
+            "threat_type": "Fallo Reiterado de Conexión / Bloqueo Firewall",
+            "severity": "Media"
+        },
+        "suspicious_internal_port": {
+            "tactic": "Discovery",
+            "technique": "T1021 - Remote Services Probing",
+            "threat_type": "Sondeo de Servicios Internos No Autorizados",
+            "severity": "Media"
         },
         "sql_injection": {
             "tactic": "Initial Access",
@@ -74,6 +92,6 @@ class MitreMapper:
         return cls.MITRE_RULES.get(event_type, {
             "tactic": "General Defense",
             "technique": "T1000 - Generic Security Event",
-            "threat_type": "Anomalía General",
+            "threat_type": "Anomalía de Red",
             "severity": "Baja"
         })

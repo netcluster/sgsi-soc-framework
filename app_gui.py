@@ -1009,6 +1009,7 @@ class SGSISOCApp(tk.Tk):
             "Implementado",
             "En Proceso",
             "Planificado",
+            "No Implementado",
             "No Aplica"
         ], font=("Segoe UI", 9), width=16, state="readonly")
         self.soa_state_cb.set("Todos los Estados")
@@ -1103,6 +1104,19 @@ class SGSISOCApp(tk.Tk):
         )
         btn_quick_plan.pack(side=tk.LEFT, padx=3)
 
+        btn_quick_no_impl = tk.Button(
+            actions_bar,
+            text="❌ No Implementado (0%)",
+            font=("Segoe UI", 8),
+            bg="#C0392B",
+            fg="white",
+            relief=tk.FLAT,
+            padx=8,
+            pady=3,
+            command=lambda: self.action_quick_soa_status("No Implementado", 0)
+        )
+        btn_quick_no_impl.pack(side=tk.LEFT, padx=3)
+
         # 3. Tabla SoA
         cols = ("Código", "Nombre del Control", "Dominio", "Aplica", "Estado", "Madurez %", "Responsable", "Evidencia")
         self.tree_soa = ttk.Treeview(self.tab_soa, columns=cols, show="headings", selectmode="browse")
@@ -1183,7 +1197,16 @@ class SGSISOCApp(tk.Tk):
             ))
             count += 1
 
-        self.soa_count_lbl.config(text=f"{count} / {len(controls)} controles")
+        cnt_impl = sum(1 for c in controls if c.get("Estado_Implementacion") == "Implementado")
+        cnt_proc = sum(1 for c in controls if c.get("Estado_Implementacion") == "En Proceso")
+        cnt_plan = sum(1 for c in controls if c.get("Estado_Implementacion") == "Planificado")
+        cnt_no_impl = sum(1 for c in controls if c.get("Estado_Implementacion") == "No Implementado")
+        cnt_na = sum(1 for c in controls if c.get("Estado_Implementacion") == "No Aplica")
+
+        if query or domain_sel != "Todos los Dominios" or state_sel != "Todos los Estados":
+            self.soa_count_lbl.config(text=f"Filtro: {count}/{len(controls)} | ✅ Impl: {cnt_impl} | ❌ No Impl: {cnt_no_impl}")
+        else:
+            self.soa_count_lbl.config(text=f"Total: {len(controls)} | ✅ Impl: {cnt_impl} | 🔄 Proc: {cnt_proc} | 📅 Plan: {cnt_plan} | ❌ No Impl: {cnt_no_impl} | ⚪ N/A: {cnt_na}")
 
     def load_soa_table(self):
         self.filter_soa_table()
@@ -1321,8 +1344,8 @@ class SGSISOCApp(tk.Tk):
         cb_aplica.pack(side=tk.LEFT, padx=(0, 20))
 
         tk.Label(row1, text="Estado de Implementación:", font=("Segoe UI", 9, "bold"), bg=self.color_bg, width=22, anchor="w").pack(side=tk.LEFT)
-        cb_state = ttk.Combobox(row1, values=["Implementado", "En Proceso", "Planificado", "No Aplica"], font=("Segoe UI", 9), width=15, state="readonly")
-        cb_state.set(ctrl.get("Estado_Implementacion", "Planificado"))
+        cb_state = ttk.Combobox(row1, values=["Implementado", "En Proceso", "Planificado", "No Implementado", "No Aplica"], font=("Segoe UI", 9), width=16, state="readonly")
+        cb_state.set(ctrl.get("Estado_Implementacion", "No Implementado"))
         cb_state.pack(side=tk.LEFT)
 
         # 2. Madurez % con Slider
@@ -1331,11 +1354,11 @@ class SGSISOCApp(tk.Tk):
 
         tk.Label(row2, text="Porcentaje Madurez:", font=("Segoe UI", 9, "bold"), bg=self.color_bg, width=16, anchor="w").pack(side=tk.LEFT)
         
-        mad_init = 50
+        mad_init = 0
         try:
-            mad_init = int(float(str(ctrl.get("Porcentaje_Madurez", "50")).replace("%", "").strip()))
+            mad_init = int(float(str(ctrl.get("Porcentaje_Madurez", "0")).replace("%", "").strip()))
         except:
-            mad_init = 50
+            mad_init = 0
 
         lbl_mad_val = tk.Label(row2, text=f"{mad_init}%", font=("Segoe UI", 10, "bold"), bg=self.color_bg, fg="#2980B9", width=6)
 
@@ -1357,6 +1380,9 @@ class SGSISOCApp(tk.Tk):
                 cb_aplica.set("SI")
             elif st == "Planificado":
                 scale_mad.set(15)
+                cb_aplica.set("SI")
+            elif st == "No Implementado":
+                scale_mad.set(0)
                 cb_aplica.set("SI")
             elif st == "No Aplica":
                 scale_mad.set(0)

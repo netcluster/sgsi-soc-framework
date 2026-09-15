@@ -70,6 +70,10 @@ class SoAManager:
             if c.get('Codigo_Control', '').strip() in control_codes:
                 controls[idx]['Estado_Implementacion'] = status
                 controls[idx]['Porcentaje_Madurez'] = str(maturity_pct)
+                if status == "No Aplica":
+                    controls[idx]['Aplica'] = "NO"
+                elif status in ["Implementado", "En Proceso", "Planificado", "No Implementado"]:
+                    controls[idx]['Aplica'] = "SI"
                 count += 1
 
         if count > 0:

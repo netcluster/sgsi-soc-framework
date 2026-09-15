@@ -515,14 +515,20 @@ class DashboardGenerator:
 
         # ---------------------------------------------------------------------
         # GRÁFICO 3: ESTADO DE CONTROLES POR DOMINIO ISO 27001
-        # Principio: Barras Apiladas Semióticas (Verde, Ámbar, Gris)
+        # Principio: Barras Apiladas Semióticas (Verde, Ámbar, Azul Gris, Rojo)
         # ---------------------------------------------------------------------
         domain_states = {}
         for c in soa:
             dom = c.get("Dominio", "General").replace("Controles ", "").strip()
-            st = c.get("Estado_Implementacion", "Planificado").strip()
+            st = c.get("Estado_Implementacion", "No Implementado").strip()
             if dom not in domain_states:
-                domain_states[dom] = {"Implementado": 0, "En Proceso": 0, "Planificado": 0}
+                domain_states[dom] = {
+                    "Implementado": 0,
+                    "En Proceso": 0,
+                    "Planificado": 0,
+                    "No Implementado": 0,
+                    "No Aplica": 0
+                }
             domain_states[dom][st] = domain_states[dom].get(st, 0) + 1
 
         doms = list(domain_states.keys())
@@ -544,6 +550,12 @@ class DashboardGenerator:
             x=doms,
             y=[domain_states[d].get("Planificado", 0) for d in doms],
             marker_color=COLOR_PLANNED
+        ))
+        fig_states.add_trace(go.Bar(
+            name='No Implementado (0%)',
+            x=doms,
+            y=[domain_states[d].get("No Implementado", 0) for d in doms],
+            marker_color=COLOR_CRITICAL
         ))
 
         fig_states.update_layout(
@@ -593,6 +605,9 @@ class DashboardGenerator:
         html_activos = fig_activos.to_html(full_html=False, include_plotlyjs=False, config=PLOTLY_CONFIG)
 
         impl_count = sum(1 for c in soa if c.get('Estado_Implementacion') == 'Implementado')
+        no_impl_count = sum(1 for c in soa if c.get('Estado_Implementacion') == 'No Implementado')
+        in_proc_count = sum(1 for c in soa if c.get('Estado_Implementacion') == 'En Proceso')
+        plan_count = sum(1 for c in soa if c.get('Estado_Implementacion') == 'Planificado')
 
         dashboard_html = f"""<!DOCTYPE html>
 <html lang="es">
@@ -648,9 +663,14 @@ class DashboardGenerator:
             <div class="card-title">Riesgos Críticos Residuales</div>
             <div class="card-val" style="color: {COLOR_LOW};">0 <span style="font-size: 11px; font-weight: 500; color: #64748B;">(100% mitigados)</span></div>
         </div>
-        <div class="card" style="border-top: 3px solid {COLOR_MEDIUM};">
+        <div class="card" style="border-top: 3px solid {COLOR_LOW};">
             <div class="card-title">Controles Implementados</div>
             <div class="card-val" style="color: {COLOR_PRIMARY};">{impl_count} <span style="font-size: 12px; font-weight: 500; color: #64748B;">/ {len(soa)}</span></div>
+            <div style="font-size: 10px; color: #64748B; margin-top: 3px;">
+                <span style="color: {COLOR_CRITICAL}; font-weight: 700;">{no_impl_count} No Impl.</span> • 
+                <span style="color: {COLOR_MEDIUM}; font-weight: 700;">{in_proc_count} En Proc.</span> • 
+                <span style="color: {COLOR_PLANNED}; font-weight: 700;">{plan_count} Planif.</span>
+            </div>
         </div>
     </div>
 

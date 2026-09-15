@@ -24,6 +24,7 @@ from core.gsheets_manager import GSheetsManager
 from soc_engine.log_parser import LogParser
 from soc_engine.threat_detector import ThreatDetector
 from soc_engine.syslog_collector import SyslogCollector
+from soc_engine.threat_intel_manager import ThreatIntelManager
 from simulators.generate_sample_telemetry import simulate_soc_activity
 from dashboards.dashboard_generator import DashboardGenerator
 from dashboards.live_server import LiveDashboardHandler, HTTPServer
@@ -383,6 +384,19 @@ class SGSISOCApp(tk.Tk):
         )
         btn_mitigate.pack(side=tk.LEFT, padx=5)
 
+        btn_cti = tk.Button(
+            actions_bar,
+            text="🌐 Feeds CTI...",
+            font=("Segoe UI", 9, "bold"),
+            bg="#8E44AD",
+            fg="white",
+            relief=tk.FLAT,
+            padx=10,
+            pady=5,
+            command=self.action_open_cti_modal
+        )
+        btn_cti.pack(side=tk.LEFT, padx=5)
+
         btn_ref = tk.Button(
             actions_bar,
             text="🔄 Actualizar",
@@ -683,6 +697,122 @@ class SGSISOCApp(tk.Tk):
         tk.Button(
             btn_box,
             text="Cancelar",
+            font=("Segoe UI", 9),
+            bg="#BDC3C7",
+            fg="#2C3E50",
+            relief=tk.FLAT,
+            padx=12,
+            pady=6,
+            command=modal.destroy
+        ).pack(side=tk.RIGHT)
+
+    def action_open_cti_modal(self):
+        modal = tk.Toplevel(self)
+        modal.title("🌐 Cyber Threat Intelligence (CTI) - Feeds Dinámicos de Amenazas")
+        modal.geometry("640x520")
+        modal.minsize(600, 480)
+        modal.configure(bg=self.color_bg)
+        modal.grab_set()
+
+        hdr = tk.Frame(modal, bg="#4A235A", padx=15, pady=10)
+        hdr.pack(fill=tk.X)
+        tk.Label(
+            hdr,
+            text="🌐 Ciberinteligencia de Amenazas (CTI Feeds en Vivo)",
+            font=("Segoe UI", 11, "bold"),
+            bg="#4A235A",
+            fg="white"
+        ).pack(anchor="w")
+        tk.Label(
+            hdr,
+            text="Correlación en tiempo real con CSIRT Nacional, Feodo Tracker (Abuse.ch), MISP y Tor Project",
+            font=("Segoe UI", 8),
+            bg="#4A235A",
+            fg="#D7BDE2"
+        ).pack(anchor="w")
+
+        body = tk.Frame(modal, bg=self.color_bg, padx=15, pady=12)
+        body.pack(fill=tk.BOTH, expand=True)
+
+        intel_mgr = ThreatIntelManager()
+        total_loaded = len(intel_mgr.iocs)
+        last_sync = intel_mgr.last_updated or "Caché inicial local"
+
+        f_stats = tk.LabelFrame(body, text=" 📊 Estado Actual de los Feeds de CTI ", font=("Segoe UI", 9, "bold"), bg=self.color_card, padx=12, pady=8)
+        f_stats.pack(fill=tk.X, pady=(0, 8))
+
+        lbl_total = tk.Label(f_stats, text=f"Total de Indicadores (IoCs) en Memoria: {total_loaded:,} IPs y C2s", font=("Segoe UI", 10, "bold"), bg=self.color_card, fg="#8E44AD")
+        lbl_total.pack(anchor="w", pady=2)
+        
+        lbl_sync = tk.Label(f_stats, text=f"Última Actualización Online: {last_sync}", font=("Segoe UI", 8), bg=self.color_card, fg="#64748B")
+        lbl_sync.pack(anchor="w", pady=2)
+
+        f_sources = tk.LabelFrame(body, text=" 🛡️ Fuentes Abiertas Conectadas ", font=("Segoe UI", 9, "bold"), bg=self.color_card, padx=12, pady=8)
+        f_sources.pack(fill=tk.BOTH, expand=True, pady=4)
+
+        sources_info = [
+            ("🇨🇱 CSIRT Nacional & Gobierno", "IoCs de campañas dirigidas a Chile, malware bancario y ransomware."),
+            ("🤖 Feodo Tracker (Abuse.ch)", "Servidores C2 activos de botnets (QakBot, Emotet, Dridex, TrickBot)."),
+            ("🧅 Tor Project Official List", "Nodos de salida Tor para detección de tráfico anónimo y evasión perimetral."),
+            ("🛡️ MISP & AlienVault OTX", "Listas de IPs maliciosas globales y vectores de explotación web (SQLi / XSS)."),
+            ("🚫 AbuseIPDB Global Blocklist", "IPs con reporte de escaneo masivo, fuerza bruta SSH y botnets activas.")
+        ]
+
+        for name, desc in sources_info:
+            r = tk.Frame(f_sources, bg=self.color_card)
+            r.pack(fill=tk.X, pady=3)
+            tk.Label(r, text=f"• {name}:", font=("Segoe UI", 8, "bold"), bg=self.color_card, fg="#1F2937").pack(side=tk.LEFT)
+            tk.Label(r, text=f" {desc}", font=("Segoe UI", 8), bg=self.color_card, fg="#4B5563").pack(side=tk.LEFT)
+
+        lbl_status_cti = tk.Label(body, text="", font=("Segoe UI", 8), bg=self.color_bg, fg="#27AE60")
+        lbl_status_cti.pack(anchor="w", pady=4)
+
+        # Botones
+        btn_box = tk.Frame(modal, bg=self.color_bg, pady=10)
+        btn_box.pack(fill=tk.X, side=tk.BOTTOM)
+
+        def sync_cti_online():
+            lbl_status_cti.config(text="⏳ Conectando con Feodo Tracker y Tor Project... Por favor espera...", fg="#E67E22")
+            modal.update()
+
+            def run_sync():
+                res = intel_mgr.update_feeds_online(timeout_sec=8)
+                def on_done():
+                    if res.get("success"):
+                        lbl_total.config(text=f"Total de Indicadores (IoCs) en Memoria: {res['total_iocs']:,} IPs y C2s")
+                        lbl_sync.config(text=f"Última Actualización Online: {res['last_updated']}")
+                        lbl_status_cti.config(
+                            text=f"✅ ¡Feeds actualizados con éxito! ({res['total_iocs']:,} IoCs cargados)",
+                            fg="#27AE60"
+                        )
+                        messagebox.showinfo(
+                            "CTI Actualizado",
+                            f"¡Inteligencia de Amenazas actualizada!\n"
+                            f"Total IoCs activos: {res['total_iocs']:,}\n"
+                            f"Fuentes sincronizadas: {', '.join(res['sources'])}",
+                            parent=modal
+                        )
+                    else:
+                        lbl_status_cti.config(text=f"⚠️ Conexión parcial: {res.get('errors', ['Error desconocido'])}", fg="#C0392B")
+                self.after(100, on_done)
+
+            threading.Thread(target=run_sync, daemon=True).start()
+
+        tk.Button(
+            btn_box,
+            text="🚀 Actualizar Feeds CTI en Vivo (Internet)",
+            font=("Segoe UI", 10, "bold"),
+            bg="#8E44AD",
+            fg="white",
+            relief=tk.FLAT,
+            padx=16,
+            pady=6,
+            command=sync_cti_online
+        ).pack(side=tk.RIGHT, padx=15)
+
+        tk.Button(
+            btn_box,
+            text="Cerrar",
             font=("Segoe UI", 9),
             bg="#BDC3C7",
             fg="#2C3E50",

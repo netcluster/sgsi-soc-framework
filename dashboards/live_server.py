@@ -9,6 +9,7 @@ import os
 import sys
 import json
 import time
+import hashlib
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse
@@ -20,20 +21,43 @@ from core.incident_manager import IncidentManager
 from core.risk_calculator import RiskCalculator
 from dashboards.dashboard_generator import DashboardGenerator
 
+def get_framework_data_signature(base_dir: str) -> str:
+    """Calcula un hash MD5 con las fechas de modificación y tamaños de todas las matrices del SGSI & SOC"""
+    tmpl_dir = os.path.join(base_dir, "templates_google")
+    files = [
+        "01_inventario_activos_template.csv",
+        "02_matriz_riesgos_template.csv",
+        "03_soa_iso27001_template.csv",
+        "04_registro_incidentes_template.csv"
+    ]
+    parts = []
+    for f in files:
+        fp = os.path.join(tmpl_dir, f)
+        if os.path.exists(fp):
+            try:
+                mtime = os.path.getmtime(fp)
+                size = os.path.getsize(fp)
+                parts.append(f"{f}:{mtime}:{size}")
+            except:
+                pass
+    return hashlib.md5(";".join(parts).encode("utf-8")).hexdigest()
+
 class LiveDashboardHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
         base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
         html_dir = os.path.join(base_dir, "dashboards", "html")
 
-        # 1. API en tiempo real para datos de incidentes y KPIs
+        # 1. API en tiempo real para datos de incidentes, riesgos, controles y firma de estado
         if parsed.path == "/api/live-data":
             inc_mgr = IncidentManager(os.path.join(base_dir, "templates_google", "04_registro_incidentes_template.csv"))
             incidents = inc_mgr.get_all_incidents()
             kpis = inc_mgr.compute_kpis()
+            signature = get_framework_data_signature(base_dir)
 
             response_data = {
                 "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "signature": signature,
                 "kpis": kpis,
                 "recent_incidents": incidents[-10:],
                 "total": len(incidents)
@@ -42,11 +66,12 @@ class LiveDashboardHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
             self.end_headers()
             self.wfile.write(json.dumps(response_data, ensure_ascii=False).encode('utf-8'))
             return
 
-        # 2. Rutas para los Dashboards
+        # 2. Rutas para los Dashboards (siempre regenerados y sin caché)
         if parsed.path in ["/", "/ciso"]:
             generator = DashboardGenerator()
             file_path = generator.generate_ciso_dashboard()
@@ -67,6 +92,9 @@ class LiveDashboardHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(content)))
+        self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+        self.send_header("Pragma", "no-cache")
+        self.send_header("Expires", "0")
         self.end_headers()
         self.wfile.write(content)
 

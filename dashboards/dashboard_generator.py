@@ -401,20 +401,22 @@ class DashboardGenerator:
     </div>
 
     <script>
-        let currentTotal = {len(incidents)};
+        let currentSignature = "";
         async function fetchLiveData() {{
             try {{
-                const res = await fetch('/api/live-data');
+                const res = await fetch('/api/live-data?t=' + new Date().getTime());
                 if (res.ok) {{
                     const data = await res.json();
-                    if (data.total !== currentTotal) {{
-                        currentTotal = data.total;
+                    if (!currentSignature) {{
+                        currentSignature = data.signature;
+                    }} else if (data.signature && data.signature !== currentSignature) {{
+                        currentSignature = data.signature;
                         window.location.reload();
                     }}
                 }}
             }} catch(e) {{}}
         }}
-        setInterval(fetchLiveData, 3000);
+        setInterval(fetchLiveData, 2000);
     </script>
 </body>
 </html>"""
@@ -667,6 +669,25 @@ class DashboardGenerator:
     <div class="footer">
         Informe Ejecutivo Antigravity SGSI Framework • Alta Eficiencia Visual y Principios de Diseño Científico
     </div>
+
+    <script>
+        let currentSignature = "";
+        async function fetchLiveData() {{
+            try {{
+                const res = await fetch('/api/live-data?t=' + new Date().getTime());
+                if (res.ok) {{
+                    const data = await res.json();
+                    if (!currentSignature) {{
+                        currentSignature = data.signature;
+                    }} else if (data.signature && data.signature !== currentSignature) {{
+                        currentSignature = data.signature;
+                        window.location.reload();
+                    }}
+                }}
+            }} catch(e) {{}}
+        }}
+        setInterval(fetchLiveData, 2000);
+    </script>
 </body>
 </html>"""
 

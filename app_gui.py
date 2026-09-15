@@ -18,6 +18,7 @@ from datetime import datetime
 # Importar módulos del core
 from core.risk_calculator import RiskCalculator
 from core.soa_manager import SoAManager
+from core.asset_manager import AssetManager
 from core.incident_manager import IncidentManager
 from core.gsheets_manager import GSheetsManager
 from soc_engine.log_parser import LogParser
@@ -66,6 +67,7 @@ class SGSISOCApp(tk.Tk):
         self.load_incidents_table()
         self.load_risks_table()
         self.load_soa_table()
+        self.load_assets_table()
 
     def _is_port_in_use(self, port: int) -> bool:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -167,6 +169,7 @@ class SGSISOCApp(tk.Tk):
         self.refresh_kpis()
         self.load_risks_table()
         self.load_soa_table()
+        self.load_assets_table()
         
         try:
             dash_gen = DashboardGenerator()
@@ -206,6 +209,11 @@ class SGSISOCApp(tk.Tk):
         self.tab_soa = tk.Frame(self.notebook, bg=self.color_bg)
         self.notebook.add(self.tab_soa, text="  📜 Controles SoA (ISO 27001)  ")
         self._build_tab_soa()
+
+        # Tab 5: SGSI - Inventario de Activos (ISO 27001 / Ley 21.663)
+        self.tab_assets = tk.Frame(self.notebook, bg=self.color_bg)
+        self.notebook.add(self.tab_assets, text="  🏢 Inventario de Activos (ISO 27001 / Ley 21.663)  ")
+        self._build_tab_assets()
 
     def _create_footer(self):
         footer_frame = tk.Frame(self, bg="#E2E8F0", height=28)
@@ -1226,6 +1234,7 @@ class SGSISOCApp(tk.Tk):
 
         count = soa_mgr.batch_set_status(updated_codes, status, maturity)
         self.load_soa_table()
+        self.load_assets_table()
 
         try:
             DashboardGenerator().generate_all()
@@ -1770,6 +1779,459 @@ class SGSISOCApp(tk.Tk):
             pady=4,
             command=modal.destroy
         ).pack(side=tk.BOTTOM, pady=10)
+
+
+    # =========================================================================
+    # TAB 5: INVENTARIO DE ACTIVOS DE INFORMACIÓN (ISO 27001 CONTROL 5.9 & LEY 21.663)
+    # =========================================================================
+    def _build_tab_assets(self):
+        # 1. Barra de Filtros
+        filter_bar = tk.Frame(self.tab_assets, bg=self.color_bg)
+        filter_bar.pack(fill=tk.X, padx=10, pady=(6, 2))
+
+        tk.Label(filter_bar, text="🔍 Buscar:", font=("Segoe UI", 9, "bold"), bg=self.color_bg).pack(side=tk.LEFT, padx=(0, 4))
+        self.asset_search_entry = tk.Entry(filter_bar, font=("Segoe UI", 9), width=18)
+        self.asset_search_entry.pack(side=tk.LEFT, padx=(0, 10))
+        self.asset_search_entry.bind("<KeyRelease>", lambda event: self.filter_assets_table())
+
+        tk.Label(filter_bar, text="Tipo de Activo:", font=("Segoe UI", 9, "bold"), bg=self.color_bg).pack(side=tk.LEFT, padx=(0, 4))
+        self.asset_type_cb = ttk.Combobox(filter_bar, values=[
+            "Todos los Tipos",
+            "Informacion / Base de Datos",
+            "Hardware / Servidor Virtual",
+            "Hardware / Endpoint",
+            "Software / Repositorio",
+            "Red / Comunicaciones",
+            "Servicio / Almacenamiento",
+            "Instalaciones / Datacenter",
+            "Personas / Roles Clave"
+        ], font=("Segoe UI", 9), width=22, state="readonly")
+        self.asset_type_cb.set("Todos los Tipos")
+        self.asset_type_cb.pack(side=tk.LEFT, padx=(0, 10))
+        self.asset_type_cb.bind("<<ComboboxSelected>>", lambda event: self.filter_assets_table())
+
+        tk.Label(filter_bar, text="Criticidad:", font=("Segoe UI", 9, "bold"), bg=self.color_bg).pack(side=tk.LEFT, padx=(0, 4))
+        self.asset_crit_cb = ttk.Combobox(filter_bar, values=[
+            "Todas las Criticidades",
+            "Crítico",
+            "Alto",
+            "Medio",
+            "Bajo"
+        ], font=("Segoe UI", 9), width=16, state="readonly")
+        self.asset_crit_cb.set("Todas las Criticidades")
+        self.asset_crit_cb.pack(side=tk.LEFT, padx=(0, 10))
+        self.asset_crit_cb.bind("<<ComboboxSelected>>", lambda event: self.filter_assets_table())
+
+        btn_clear = tk.Button(
+            filter_bar,
+            text="🧹 Limpiar",
+            font=("Segoe UI", 8),
+            bg="#E2E8F0",
+            fg="#2C3E50",
+            relief=tk.FLAT,
+            padx=6,
+            pady=2,
+            command=self.clear_assets_filters
+        )
+        btn_clear.pack(side=tk.LEFT)
+
+        self.assets_count_lbl = tk.Label(filter_bar, text="0 activos", font=("Segoe UI", 9, "bold"), bg=self.color_bg, fg="#2980B9")
+        self.assets_count_lbl.pack(side=tk.RIGHT, padx=5)
+
+        # 2. Barra de Acciones
+        actions_bar = tk.Frame(self.tab_assets, bg=self.color_bg)
+        actions_bar.pack(fill=tk.X, padx=10, pady=(2, 6))
+
+        btn_new = tk.Button(
+            actions_bar,
+            text="➕ Nuevo Activo...",
+            font=("Segoe UI", 9, "bold"),
+            bg="#27AE60",
+            fg="white",
+            relief=tk.FLAT,
+            padx=10,
+            pady=4,
+            command=self.action_new_asset
+        )
+        btn_new.pack(side=tk.LEFT, padx=(0, 6))
+
+        btn_edit = tk.Button(
+            actions_bar,
+            text="✏️ Editar Activo...",
+            font=("Segoe UI", 9, "bold"),
+            bg="#2980B9",
+            fg="white",
+            relief=tk.FLAT,
+            padx=10,
+            pady=4,
+            command=self.action_edit_asset
+        )
+        btn_edit.pack(side=tk.LEFT, padx=(0, 6))
+
+        btn_del = tk.Button(
+            actions_bar,
+            text="🗑️ Eliminar",
+            font=("Segoe UI", 9),
+            bg="#E74C3C",
+            fg="white",
+            relief=tk.FLAT,
+            padx=8,
+            pady=4,
+            command=self.action_delete_asset
+        )
+        btn_del.pack(side=tk.LEFT, padx=(0, 6))
+
+        # 3. Tabla de Activos
+        cols = ("ID", "Nombre del Activo", "Tipo", "Propietario (Owner)", "Custodio", "Ubicación", "C (1-5)", "I (1-5)", "A (1-5)", "Criticidad", "Nivel", "Estado")
+        self.tree_assets = ttk.Treeview(self.tab_assets, columns=cols, show="headings", selectmode="browse")
+
+        self.tree_assets.heading("ID", text="ID")
+        self.tree_assets.heading("Nombre del Activo", text="Nombre del Activo de Información")
+        self.tree_assets.heading("Tipo", text="Tipo de Activo")
+        self.tree_assets.heading("Propietario (Owner)", text="Propietario (Asset Owner)")
+        self.tree_assets.heading("Custodio", text="Custodio Técnico")
+        self.tree_assets.heading("Ubicación", text="Ubicación Física/Lógica")
+        self.tree_assets.heading("C (1-5)", text="C")
+        self.tree_assets.heading("I (1-5)", text="I")
+        self.tree_assets.heading("A (1-5)", text="A")
+        self.tree_assets.heading("Criticidad", text="Score (3-15)")
+        self.tree_assets.heading("Nivel", text="Nivel Criticidad")
+        self.tree_assets.heading("Estado", text="Estado")
+
+        self.tree_assets.column("ID", width=65, anchor="center")
+        self.tree_assets.column("Nombre del Activo", width=220)
+        self.tree_assets.column("Tipo", width=150)
+        self.tree_assets.column("Propietario (Owner)", width=130)
+        self.tree_assets.column("Custodio", width=120)
+        self.tree_assets.column("Ubicación", width=130)
+        self.tree_assets.column("C (1-5)", width=35, anchor="center")
+        self.tree_assets.column("I (1-5)", width=35, anchor="center")
+        self.tree_assets.column("A (1-5)", width=35, anchor="center")
+        self.tree_assets.column("Criticidad", width=75, anchor="center")
+        self.tree_assets.column("Nivel", width=90, anchor="center")
+        self.tree_assets.column("Estado", width=75, anchor="center")
+
+        scroll_y = ttk.Scrollbar(self.tab_assets, orient=tk.VERTICAL, command=self.tree_assets.yview)
+        self.tree_assets.configure(yscrollcommand=scroll_y.set)
+
+        self.tree_assets.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(10, 0), pady=5)
+        scroll_y.pack(side=tk.RIGHT, fill=tk.Y, padx=(0, 10), pady=5)
+
+        self.tree_assets.bind("<Double-1>", lambda event: self.action_edit_asset())
+        self.load_assets_table()
+
+    def clear_assets_filters(self):
+        self.asset_search_entry.delete(0, tk.END)
+        self.asset_type_cb.set("Todos los Tipos")
+        self.asset_crit_cb.set("Todas las Criticidades")
+        self.filter_assets_table()
+
+    def filter_assets_table(self):
+        query = self.asset_search_entry.get().strip().lower()
+        type_sel = self.asset_type_cb.get().strip()
+        crit_sel = self.asset_crit_cb.get().strip()
+
+        for item in self.tree_assets.get_children():
+            self.tree_assets.delete(item)
+
+        asset_mgr = AssetManager()
+        assets = asset_mgr.get_all_assets()
+        count = 0
+
+        for a in assets:
+            aid = a.get("ID_Activo", "")
+            name = a.get("Nombre_Activo", "")
+            atype = a.get("Tipo_Activo", "")
+            owner = a.get("Propietario", "")
+            custodian = a.get("Custodio", "")
+            loc = a.get("Ubicacion", "")
+            c = a.get("Confidencialidad_1a5", "3")
+            i = a.get("Integridad_1a5", "3")
+            dis = a.get("Disponibilidad_1a5", "3")
+            score = a.get("Criticidad_Calculada", "9")
+            nivel = a.get("Nivel_Criticidad", "Medio")
+            st = a.get("Estado", "Activo")
+
+            # Filtro texto
+            if query and (query not in aid.lower() and query not in name.lower() and query not in owner.lower() and query not in custodian.lower() and query not in loc.lower()):
+                continue
+
+            # Filtro tipo
+            if type_sel != "Todos los Tipos" and atype != type_sel:
+                continue
+
+            # Filtro criticidad
+            if crit_sel != "Todas las Criticidades":
+                clean_crit = crit_sel.lower().replace("í", "i")
+                clean_nivel = nivel.lower().replace("í", "i")
+                if clean_crit not in clean_nivel:
+                    continue
+
+            self.tree_assets.insert("", tk.END, values=(
+                aid, name, atype, owner, custodian, loc, c, i, dis, score, nivel, st
+            ))
+            count += 1
+
+        crit_c = sum(1 for x in assets if "crit" in x.get("Nivel_Criticidad", "").lower())
+        alto_c = sum(1 for x in assets if "alt" in x.get("Nivel_Criticidad", "").lower())
+        med_c = sum(1 for x in assets if "med" in x.get("Nivel_Criticidad", "").lower())
+        baj_c = sum(1 for x in assets if "baj" in x.get("Nivel_Criticidad", "").lower())
+
+        if query or type_sel != "Todos los Tipos" or crit_sel != "Todas las Criticidades":
+            self.assets_count_lbl.config(text=f"Filtro: {count}/{len(assets)} | 🔴 Críticos: {crit_c} | 🟠 Altos: {alto_c}")
+        else:
+            self.assets_count_lbl.config(text=f"Total: {len(assets)} | 🔴 Críticos: {crit_c} | 🟠 Altos: {alto_c} | 🟡 Medios: {med_c} | 🟢 Bajos: {baj_c}")
+
+    def load_assets_table(self):
+        if hasattr(self, 'tree_assets'):
+            self.filter_assets_table()
+
+    def action_new_asset(self):
+        self._open_asset_modal({}, is_new=True)
+
+    def action_edit_asset(self):
+        selected = self.tree_assets.selection()
+        if not selected:
+            messagebox.showwarning("Seleccionar Activo", "Por favor selecciona un activo de la tabla para editar.")
+            return
+
+        item = self.tree_assets.item(selected[0])
+        aid = item["values"][0]
+
+        asset_mgr = AssetManager()
+        assets = asset_mgr.get_all_assets()
+        target = None
+        for a in assets:
+            if a.get("ID_Activo") == aid:
+                target = a
+                break
+
+        if not target:
+            messagebox.showerror("Error", f"No se encontró el activo {aid}.")
+            return
+
+        self._open_asset_modal(target, is_new=False)
+
+    def action_delete_asset(self):
+        selected = self.tree_assets.selection()
+        if not selected:
+            messagebox.showwarning("Seleccionar Activo", "Por favor selecciona un activo para eliminar.")
+            return
+
+        item = self.tree_assets.item(selected[0])
+        aid = item["values"][0]
+        name = item["values"][1]
+
+        if messagebox.askyesno("Confirmar Eliminación", f"¿Estás seguro de que deseas eliminar el activo '{aid}: {name}'?\nEsta acción actualizará los inventarios y dashboards."):
+            asset_mgr = AssetManager()
+            if asset_mgr.delete_asset(aid):
+                self.load_assets_table()
+                try:
+                    DashboardGenerator().generate_all()
+                except:
+                    pass
+                self.status_lbl.config(text=f"🗑️ Activo {aid} eliminado correctamente ({datetime.now().strftime('%H:%M:%S')})", fg="#E74C3C")
+                messagebox.showinfo("Activo Eliminado", f"El activo {aid} ha sido eliminado.")
+
+    def _open_asset_modal(self, asset: dict, is_new: bool = False):
+        modal = tk.Toplevel(self)
+        aid = asset.get("ID_Activo", "Nuevo")
+        modal.title(f"{'➕ Registrar Nuevo Activo de Información' if is_new else f'✏️ Administrar Activo - {aid}'}")
+        modal.geometry("690x620")
+        modal.minsize(650, 580)
+        modal.configure(bg=self.color_bg)
+        modal.grab_set()
+
+        hdr = tk.Frame(modal, bg=self.color_primary, padx=15, pady=10)
+        hdr.pack(fill=tk.X)
+        tk.Label(
+            hdr,
+            text=f"🏢 {'Registro de Nuevo Activo' if is_new else f'Activo {aid}: {asset.get('Nombre_Activo', '')}'}",
+            font=("Segoe UI", 11, "bold"),
+            bg=self.color_primary,
+            fg="white"
+        ).pack(anchor="w")
+        tk.Label(
+            hdr,
+            text="Cumplimiento ISO/IEC 27001:2022 Control 5.9 • Ley Marco de Ciberseguridad N° 21.663 • Ley N° 19.628",
+            font=("Segoe UI", 8),
+            bg=self.color_primary,
+            fg="#D1D5DB"
+        ).pack(anchor="w")
+
+        form = tk.Frame(modal, bg=self.color_bg, padx=15, pady=10)
+        form.pack(fill=tk.BOTH, expand=True)
+
+        # 1. Nombre
+        r1 = tk.Frame(form, bg=self.color_bg)
+        r1.pack(fill=tk.X, pady=4)
+        tk.Label(r1, text="Nombre del Activo:", font=("Segoe UI", 9, "bold"), bg=self.color_bg, width=18, anchor="w").pack(side=tk.LEFT)
+        e_name = tk.Entry(r1, font=("Segoe UI", 9))
+        e_name.insert(0, asset.get("Nombre_Activo", ""))
+        e_name.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        # 2. Tipo y Estado
+        r2 = tk.Frame(form, bg=self.color_bg)
+        r2.pack(fill=tk.X, pady=4)
+        tk.Label(r2, text="Tipo de Activo:", font=("Segoe UI", 9, "bold"), bg=self.color_bg, width=18, anchor="w").pack(side=tk.LEFT)
+        cb_type = ttk.Combobox(r2, values=[
+            "Informacion / Base de Datos",
+            "Hardware / Servidor Virtual",
+            "Hardware / Endpoint",
+            "Software / Repositorio",
+            "Red / Comunicaciones",
+            "Servicio / Almacenamiento",
+            "Instalaciones / Datacenter",
+            "Personas / Roles Clave"
+        ], font=("Segoe UI", 9), width=24, state="readonly")
+        cb_type.set(asset.get("Tipo_Activo", "Informacion / Base de Datos"))
+        cb_type.pack(side=tk.LEFT, padx=(0, 15))
+
+        tk.Label(r2, text="Estado:", font=("Segoe UI", 9, "bold"), bg=self.color_bg, width=8, anchor="w").pack(side=tk.LEFT)
+        cb_st = ttk.Combobox(r2, values=["Activo", "En Mantenimiento", "Retirado / Decomisado"], font=("Segoe UI", 9), width=15, state="readonly")
+        cb_st.set(asset.get("Estado", "Activo"))
+        cb_st.pack(side=tk.LEFT)
+
+        # 3. Propietario (Owner) y Custodio
+        r3 = tk.Frame(form, bg=self.color_bg)
+        r3.pack(fill=tk.X, pady=4)
+        tk.Label(r3, text="Propietario (Owner):", font=("Segoe UI", 9, "bold"), bg=self.color_bg, width=18, anchor="w").pack(side=tk.LEFT)
+        e_owner = tk.Entry(r3, font=("Segoe UI", 9), width=24)
+        e_owner.insert(0, asset.get("Propietario", "CISO / Jefatura de Área"))
+        e_owner.pack(side=tk.LEFT, padx=(0, 10))
+
+        tk.Label(r3, text="Custodio:", font=("Segoe UI", 9, "bold"), bg=self.color_bg, width=9, anchor="w").pack(side=tk.LEFT)
+        e_cust = tk.Entry(r3, font=("Segoe UI", 9))
+        e_cust.insert(0, asset.get("Custodio", "Administrador de Sistemas / DBA"))
+        e_cust.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        # 4. Ubicación
+        r4 = tk.Frame(form, bg=self.color_bg)
+        r4.pack(fill=tk.X, pady=4)
+        tk.Label(r4, text="Ubicación Física/Lógica:", font=("Segoe UI", 9, "bold"), bg=self.color_bg, width=18, anchor="w").pack(side=tk.LEFT)
+        e_loc = tk.Entry(r4, font=("Segoe UI", 9))
+        e_loc.insert(0, asset.get("Ubicacion", "Datacenter SERMIG / Google Cloud"))
+        e_loc.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        # 5. Marco CIA (Confidencialidad, Integridad, Disponibilidad)
+        f_cia = tk.LabelFrame(form, text=" 🛡️ Valoración de Seguridad Tríada CIA (Escala 1 a 5) ", font=("Segoe UI", 9, "bold"), bg=self.color_card, padx=12, pady=8)
+        f_cia.pack(fill=tk.X, pady=8)
+
+        # C
+        r_c = tk.Frame(f_cia, bg=self.color_card)
+        r_c.pack(fill=tk.X, pady=3)
+        tk.Label(r_c, text="Confidencialidad (C):", font=("Segoe UI", 8, "bold"), bg=self.color_card, width=18, anchor="w").pack(side=tk.LEFT)
+        lbl_c_val = tk.Label(r_c, text=str(asset.get("Confidencialidad_1a5", 3)), font=("Segoe UI", 9, "bold"), bg=self.color_card, fg="#8E44AD", width=3)
+        s_c = ttk.Scale(r_c, from_=1, to=5, orient=tk.HORIZONTAL, value=int(asset.get("Confidencialidad_1a5", 3)), command=lambda v: [lbl_c_val.config(text=str(int(float(v)))), recalc_badge()])
+        s_c.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=8)
+        lbl_c_val.pack(side=tk.LEFT)
+
+        # I
+        r_i = tk.Frame(f_cia, bg=self.color_card)
+        r_i.pack(fill=tk.X, pady=3)
+        tk.Label(r_i, text="Integridad (I):", font=("Segoe UI", 8, "bold"), bg=self.color_card, width=18, anchor="w").pack(side=tk.LEFT)
+        lbl_i_val = tk.Label(r_i, text=str(asset.get("Integridad_1a5", 3)), font=("Segoe UI", 9, "bold"), bg=self.color_card, fg="#2980B9", width=3)
+        s_i = ttk.Scale(r_i, from_=1, to=5, orient=tk.HORIZONTAL, value=int(asset.get("Integridad_1a5", 3)), command=lambda v: [lbl_i_val.config(text=str(int(float(v)))), recalc_badge()])
+        s_i.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=8)
+        lbl_i_val.pack(side=tk.LEFT)
+
+        # A
+        r_a = tk.Frame(f_cia, bg=self.color_card)
+        r_a.pack(fill=tk.X, pady=3)
+        tk.Label(r_a, text="Disponibilidad (A):", font=("Segoe UI", 8, "bold"), bg=self.color_card, width=18, anchor="w").pack(side=tk.LEFT)
+        lbl_a_val = tk.Label(r_a, text=str(asset.get("Disponibilidad_1a5", 3)), font=("Segoe UI", 9, "bold"), bg=self.color_card, fg="#27AE60", width=3)
+        s_a = ttk.Scale(r_a, from_=1, to=5, orient=tk.HORIZONTAL, value=int(asset.get("Disponibilidad_1a5", 3)), command=lambda v: [lbl_a_val.config(text=str(int(float(v)))), recalc_badge()])
+        s_a.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=8)
+        lbl_a_val.pack(side=tk.LEFT)
+
+        # Resultado Criticidad
+        r_res = tk.Frame(f_cia, bg=self.color_card)
+        r_res.pack(fill=tk.X, pady=(6, 2))
+        tk.Label(r_res, text="Criticidad Calculada:", font=("Segoe UI", 9, "bold"), bg=self.color_card).pack(side=tk.LEFT)
+        lbl_score_badge = tk.Label(r_res, text="Score: 9 (Medio)", font=("Segoe UI", 9, "bold"), bg="#F39C12", fg="white", padx=8, pady=2)
+        lbl_score_badge.pack(side=tk.LEFT, padx=10)
+
+        def recalc_badge():
+            c = int(s_c.get())
+            i = int(s_i.get())
+            a = int(s_a.get())
+            score, nivel = AssetManager.calculate_criticality(c, i, a)
+            color = "#DC2626" if nivel == "Critico" else "#EA580C" if nivel == "Alto" else "#F59E0B" if nivel == "Medio" else "#10B981"
+            lbl_score_badge.config(text=f"Score: {score}/15 • Nivel: {nivel.upper()}", bg=color)
+
+        recalc_badge()
+
+        # Botones
+        btn_box = tk.Frame(modal, bg=self.color_bg, pady=10)
+        btn_box.pack(fill=tk.X, side=tk.BOTTOM)
+
+        def save_asset():
+            name = e_name.get().strip()
+            if not name:
+                messagebox.showwarning("Campo Obligatorio", "Por favor ingresa el nombre del activo.", parent=modal)
+                return
+
+            c = int(s_c.get())
+            i = int(s_i.get())
+            a = int(s_a.get())
+
+            data = {
+                "Nombre_Activo": name,
+                "Tipo_Activo": cb_type.get().strip(),
+                "Propietario": e_owner.get().strip(),
+                "Custodio": e_cust.get().strip(),
+                "Ubicacion": e_loc.get().strip(),
+                "Confidencialidad_1a5": str(c),
+                "Integridad_1a5": str(i),
+                "Disponibilidad_1a5": str(a),
+                "Estado": cb_st.get().strip()
+            }
+
+            asset_mgr = AssetManager()
+            if is_new:
+                new_id = asset_mgr.add_asset(data)
+                self.load_assets_table()
+                try:
+                    DashboardGenerator().generate_all()
+                except:
+                    pass
+                self.status_lbl.config(text=f"✅ Nuevo activo {new_id} registrado exitosamente ({datetime.now().strftime('%H:%M:%S')})", fg="#27AE60")
+                messagebox.showinfo("Activo Registrado", f"¡Activo {new_id} registrado correctamente!", parent=modal)
+            else:
+                asset_mgr.update_asset(aid, data)
+                self.load_assets_table()
+                try:
+                    DashboardGenerator().generate_all()
+                except:
+                    pass
+                self.status_lbl.config(text=f"✅ Activo {aid} actualizado exitosamente ({datetime.now().strftime('%H:%M:%S')})", fg="#27AE60")
+                messagebox.showinfo("Activo Actualizado", f"¡Activo {aid} actualizado correctamente!", parent=modal)
+
+            modal.destroy()
+
+        tk.Button(
+            btn_box,
+            text="💾 Guardar Activo",
+            font=("Segoe UI", 10, "bold"),
+            bg="#27AE60",
+            fg="white",
+            relief=tk.FLAT,
+            padx=18,
+            pady=6,
+            command=save_asset
+        ).pack(side=tk.RIGHT, padx=15)
+
+        tk.Button(
+            btn_box,
+            text="Cancelar",
+            font=("Segoe UI", 9),
+            bg="#BDC3C7",
+            fg="#2C3E50",
+            relief=tk.FLAT,
+            padx=12,
+            pady=6,
+            command=modal.destroy
+        ).pack(side=tk.RIGHT)
 
     # -------------------------------------------------------------------------
     # ACCIÓN SINCRONIZAR GENÉRICA

@@ -187,18 +187,15 @@ class GSheetsManager:
         # Guardar URL en config
         self.save_config({"webhook_url": webhook_url, "last_sync": datetime.now().isoformat()})
 
-        data_bytes = json.dumps(payload).encode('utf-8')
-        req = urllib.request.Request(
-            webhook_url,
-            data=data_bytes,
-            headers={'Content-Type': 'application/json'},
-            method='POST'
-        )
-
+        # Intentar con requests (maneja redirecciones 302 de Google Apps Script de forma nativa)
         try:
-            with urllib.request.urlopen(req, timeout=30) as response:
-                res_body = response.read().decode('utf-8')
-                res_json = json.loads(res_body)
+            import requests
+            response = requests.post(webhook_url, json=payload, timeout=40, allow_redirects=True)
+            if response.status_code == 200:
+                try:
+                    res_json = response.json()
+                except Exception:
+                    res_json = {"raw": response.text[:200]}
                 return {
                     "status": "success",
                     "response": res_json,
@@ -209,18 +206,23 @@ class GSheetsManager:
                         "incidentes": len(incidentes_data)
                     }
                 }
-        except urllib.error.HTTPError as e:
-            # Manejar posibles redirecciones de Google Apps Script 302
-            if e.code == 302:
-                redirect_url = e.headers.get('Location')
-                if redirect_url:
-                    req_redir = urllib.request.Request(redirect_url, data=data_bytes, headers={'Content-Type': 'application/json'}, method='POST')
-                    with urllib.request.urlopen(req_redir, timeout=30) as redir_resp:
-                        res_body = redir_resp.read().decode('utf-8')
-                        return {"status": "success", "response": json.loads(res_body)}
-            return {"status": "error", "message": f"Error HTTP {e.code}: {e.reason}"}
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
+            else:
+                return {"status": "error", "message": f"Servidor Google respondió con código HTTP {response.status_code}: {response.text[:150]}"}
+        except Exception as err_requests:
+            # Fallback con urllib
+            try:
+                data_bytes = json.dumps(payload).encode('utf-8')
+                req = urllib.request.Request(
+                    webhook_url,
+                    data=data_bytes,
+                    headers={'Content-Type': 'application/json'},
+                    method='POST'
+                )
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    res_body = resp.read().decode('utf-8')
+                    return {"status": "success", "response": json.loads(res_body)}
+            except Exception as e:
+                return {"status": "error", "message": f"{err_requests} | {e}"}
 
     def sync_all_framework_data(self) -> Dict[str, Any]:
         """Sincroniza las 4 matrices fundamentales del SGSI y SOC"""

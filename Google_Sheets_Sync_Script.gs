@@ -33,12 +33,15 @@ function sanitizarParaCelda(valor) {
 }
 
 function doGet(e) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheetName = "SGSI";
+  try {
+    sheetName = SpreadsheetApp.getActiveSpreadsheet().getName();
+  } catch (err) {}
+
   return ContentService.createTextOutput(JSON.stringify({
     status: "ok",
     mensaje: "Servidor Google Apps Script activo para SGSI & SOC.",
-    spreadsheet_name: ss.getName(),
-    spreadsheet_url: ss.getUrl(),
+    spreadsheet_name: sheetName,
     timestamp: new Date().toISOString()
   })).setMimeType(ContentService.MimeType.JSON);
 }
@@ -103,7 +106,7 @@ function updateSheetData(ss, sheetName, rowsData) {
     sheet.clear();
   }
 
-  if (rowsData.length === 0) return;
+  if (!rowsData || rowsData.length === 0) return;
 
   var headers = Object.keys(rowsData[0]);
   var values = [headers];
@@ -128,9 +131,4 @@ function updateSheetData(ss, sheetName, rowsData) {
   headerRange.setHorizontalAlignment("center");
   
   sheet.setFrozenRows(1);
-  
-  // Limitar ancho máximo y asegurar rendimiento
-  try {
-    sheet.autoResizeColumns(1, Math.min(headers.length, 20));
-  } catch (e) {}
 }

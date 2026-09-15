@@ -151,7 +151,7 @@ class GSheetsManager:
 
         try:
             import requests
-            resp = requests.get(webhook_url, timeout=15, allow_redirects=True)
+            resp = requests.get(webhook_url, timeout=60, allow_redirects=True)
             if resp.status_code == 200:
                 try:
                     data = resp.json()
@@ -217,7 +217,7 @@ class GSheetsManager:
         # Intentar con requests (maneja redirecciones 302 de Google Apps Script de forma nativa)
         try:
             import requests
-            response = requests.post(webhook_url, json=payload, timeout=40, allow_redirects=True)
+            response = requests.post(webhook_url, json=payload, timeout=90, allow_redirects=True)
             if response.status_code == 200:
                 try:
                     res_json = response.json()

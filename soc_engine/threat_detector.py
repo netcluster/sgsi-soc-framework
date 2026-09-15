@@ -37,7 +37,9 @@ class ThreatDetector:
         # =====================================================================
         if fmt == "fortigate_traffic":
             src_ip = log_event.get("src_ip", "0.0.0.0")
+            src_host = log_event.get("src_host", "")
             dst_ip = log_event.get("dst_ip", "0.0.0.0")
+            dst_host = log_event.get("dst_host", "")
             dst_port = str(log_event.get("dst_port", ""))
             action = log_event.get("action", "").lower()
             service = log_event.get("service", "")
@@ -57,9 +59,12 @@ class ThreatDetector:
                     "mitre_tactic": mitre["tactic"],
                     "mitre_technique": mitre["technique"],
                     "src_ip": src_ip,
+                    "src_host": src_host or f"Host ({src_ip})",
+                    "dst_ip": dst_ip,
+                    "dst_host": dst_host or "AWS/Cloud Metadata API",
                     "target_asset": f"Cloud Metadata ({dst_ip}:{dst_port})",
                     "user": "Host Interno",
-                    "description": f"El host {src_ip} intentó consultar la API de metadatos de instancia cloud 169.254.169.254 (Acción: {action}).",
+                    "description": f"El host {src_ip} ({src_host}) intentó consultar la API de metadatos de instancia cloud 169.254.169.254 (Acción: {action}).",
                     "corrective_action": "Aislar host emisor, revisar procesos que originan peticiones HTTP de metadatos y aplicar bloqueo perimetral.",
                     "mttd_min": 1,
                     "mttr_min": 30,
@@ -81,9 +86,12 @@ class ThreatDetector:
                         "mitre_tactic": mitre["tactic"],
                         "mitre_technique": mitre["technique"],
                         "src_ip": src_ip,
+                        "src_host": src_host or f"Host ({src_ip})",
+                        "dst_ip": dst_ip,
+                        "dst_host": dst_host or "Múltiples Destinos de Red",
                         "target_asset": "Múltiples Destinos de Red",
                         "user": "N/A",
-                        "description": f"Se detectaron {len(self.ip_dest_ports[src_ip])} conexiones fallidas/bloqueadas consecutivas hacia distintos puertos/destinos.",
+                        "description": f"Se detectaron {len(self.ip_dest_ports[src_ip])} conexiones fallidas/bloqueadas consecutivas desde {src_host} hacia distintos puertos/destinos.",
                         "corrective_action": f"Bloquear tráfico de {src_ip} en firewall e inspeccionar posibles herramientas de escaneo (Nmap/Masscan).",
                         "mttd_min": 2,
                         "mttr_min": 15,
@@ -104,9 +112,12 @@ class ThreatDetector:
                         "mitre_tactic": mitre["tactic"],
                         "mitre_technique": mitre["technique"],
                         "src_ip": src_ip,
+                        "src_host": src_host or f"Host ({src_ip})",
+                        "dst_ip": dst_ip,
+                        "dst_host": dst_host or f"Servicio {service} ({dst_ip})",
                         "target_asset": f"Servicio {service} ({dst_ip})",
                         "user": "Host de Red",
-                        "description": f"El firewall reportó eventos de nivel warning ({log_msg or 'Fallo de conexión'}).",
+                        "description": f"El firewall reportó eventos de nivel warning ({log_msg or 'Fallo de conexión'}) para {src_host} hacia {dst_host}.",
                         "corrective_action": "Revisar configuración de política y verificar integridad del enlace o endpoint emisor.",
                         "mttd_min": 3,
                         "mttr_min": 20,
@@ -127,9 +138,12 @@ class ThreatDetector:
                         "mitre_tactic": mitre["tactic"],
                         "mitre_technique": mitre["technique"],
                         "src_ip": src_ip,
+                        "src_host": src_host or f"Host ({src_ip})",
+                        "dst_ip": dst_ip,
+                        "dst_host": dst_host or f"Servicio Interno ({dst_ip}:{dst_port})",
                         "target_asset": f"Servicio Interno {dst_ip}:{dst_port}",
                         "user": "Host Interno",
-                        "description": f"Intentos repetidos y timeout de comunicación hacia el puerto sensible {dst_port}.",
+                        "description": f"Intentos repetidos y timeout de comunicación desde {src_host} hacia el puerto sensible {dst_port} ({dst_host}).",
                         "corrective_action": "Verificar si el servicio es legítimo o si corresponde a movimiento lateral / sondeo interno.",
                         "mttd_min": 4,
                         "mttr_min": 25,

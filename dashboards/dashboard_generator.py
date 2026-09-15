@@ -176,16 +176,22 @@ class DashboardGenerator:
 
         # Tabla HTML
         table_rows = ""
-        for inc in reversed(incidents[-8:]):
+        for inc in reversed(incidents[-10:]):
             sev = inc.get("Severidad", "Media")
             badge_color = "#E74C3C" if "Crit" in sev else ("#E67E22" if "Alta" in sev else "#3498DB")
+            src_host = inc.get("Host_Origen") or inc.get("src_host") or inc.get("Usuario_Involucrado", "-")
+            dst_ip = inc.get("IP_Destino") or inc.get("IP_Destino_Activo", "-")
+            dst_host = inc.get("Host_Destino") or inc.get("IP_Destino_Activo", "-")
             table_rows += f"""<tr>
                 <td><b>{inc.get('ID_Incidente')}</b></td>
                 <td>{inc.get('Fecha_Hora')}</td>
                 <td>{inc.get('Titulo_Incidente')}</td>
                 <td><span style="background-color: {badge_color}; color: white; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">{sev}</span></td>
-                <td>{inc.get('Tactica_MITRE')} / {inc.get('Tecnica_MITRE')}</td>
                 <td><code>{inc.get('IP_Origen')}</code></td>
+                <td><small style="color: #2980B9; font-weight: 600;">{src_host}</small></td>
+                <td><code>{dst_ip}</code></td>
+                <td><small style="color: #27AE60; font-weight: 600;">{dst_host}</small></td>
+                <td>{inc.get('Tactica_MITRE')} / {inc.get('Tecnica_MITRE')}</td>
                 <td>{inc.get('Accion_Correctiva')}</td>
             </tr>"""
 
@@ -206,8 +212,8 @@ class DashboardGenerator:
         .card-val {{ font-size: 26px; font-weight: bold; color: #1B365D; }}
         .grid-2 {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }}
         .chart-box {{ background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }}
-        table {{ width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }}
-        th, td {{ padding: 10px 12px; border-bottom: 1px solid #ECF0F1; text-align: left; }}
+        table {{ width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }}
+        th, td {{ padding: 8px 10px; border-bottom: 1px solid #ECF0F1; text-align: left; }}
         th {{ background-color: #F8F9FA; color: #1B365D; font-weight: 600; }}
         tr:hover {{ background-color: #F8F9FA; }}
         .footer {{ text-align: center; margin-top: 30px; font-size: 12px; color: #95A5A6; }}
@@ -258,7 +264,7 @@ class DashboardGenerator:
         <table>
             <thead>
                 <tr>
-                    <th>ID</th><th>Fecha / Hora</th><th>Incidente Detectado</th><th>Severidad</th><th>Mapeo MITRE ATT&CK</th><th>IP Origen</th><th>Acción de Mitigación</th>
+                    <th>ID</th><th>Fecha / Hora</th><th>Incidente Detectado</th><th>Severidad</th><th>IP Origen</th><th>Host Origen</th><th>IP Destino</th><th>Host Destino</th><th>Mapeo MITRE</th><th>Acción</th>
                 </tr>
             </thead>
             <tbody id="live-table-body">

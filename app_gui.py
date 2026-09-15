@@ -337,26 +337,30 @@ class SGSISOCApp(tk.Tk):
         )
         btn_ref.pack(side=tk.RIGHT, padx=5)
 
-        cols = ("ID", "Fecha/Hora", "Título", "Severidad", "Estado", "Técnica MITRE", "IP Origen", "Activo Afectado")
+        cols = ("ID", "Fecha/Hora", "Título", "Severidad", "IP Origen", "Host Origen", "IP Destino", "Host Destino", "Técnica MITRE", "Estado")
         self.tree_incidents = ttk.Treeview(self.tab_soc, columns=cols, show="headings", selectmode="browse")
         
         self.tree_incidents.heading("ID", text="ID")
         self.tree_incidents.heading("Fecha/Hora", text="Fecha/Hora")
         self.tree_incidents.heading("Título", text="Título")
         self.tree_incidents.heading("Severidad", text="Severidad")
-        self.tree_incidents.heading("Estado", text="Estado")
-        self.tree_incidents.heading("Técnica MITRE", text="Técnica MITRE")
         self.tree_incidents.heading("IP Origen", text="IP Origen")
-        self.tree_incidents.heading("Activo Afectado", text="Activo Afectado")
+        self.tree_incidents.heading("Host Origen", text="Host Origen")
+        self.tree_incidents.heading("IP Destino", text="IP Destino")
+        self.tree_incidents.heading("Host Destino", text="Host Destino")
+        self.tree_incidents.heading("Técnica MITRE", text="Técnica MITRE")
+        self.tree_incidents.heading("Estado", text="Estado")
 
-        self.tree_incidents.column("ID", width=80, anchor="center")
-        self.tree_incidents.column("Fecha/Hora", width=130)
-        self.tree_incidents.column("Título", width=220)
-        self.tree_incidents.column("Severidad", width=80, anchor="center")
-        self.tree_incidents.column("Estado", width=90, anchor="center")
-        self.tree_incidents.column("Técnica MITRE", width=170)
-        self.tree_incidents.column("IP Origen", width=100, anchor="center")
-        self.tree_incidents.column("Activo Afectado", width=140)
+        self.tree_incidents.column("ID", width=75, anchor="center")
+        self.tree_incidents.column("Fecha/Hora", width=125)
+        self.tree_incidents.column("Título", width=180)
+        self.tree_incidents.column("Severidad", width=75, anchor="center")
+        self.tree_incidents.column("IP Origen", width=95, anchor="center")
+        self.tree_incidents.column("Host Origen", width=130)
+        self.tree_incidents.column("IP Destino", width=95, anchor="center")
+        self.tree_incidents.column("Host Destino", width=140)
+        self.tree_incidents.column("Técnica MITRE", width=130)
+        self.tree_incidents.column("Estado", width=75, anchor="center")
 
         scroll_y = ttk.Scrollbar(self.tab_soc, orient=tk.VERTICAL, command=self.tree_incidents.yview)
         self.tree_incidents.configure(yscrollcommand=scroll_y.set)
@@ -393,15 +397,21 @@ class SGSISOCApp(tk.Tk):
         inc_mgr = IncidentManager()
         incidents = inc_mgr.get_all_incidents()
         for inc in reversed(incidents):
+            src_host = inc.get("Host_Origen") or inc.get("src_host") or inc.get("Usuario_Involucrado", "-")
+            dst_ip = inc.get("IP_Destino") or inc.get("IP_Destino_Activo", "-")
+            dst_host = inc.get("Host_Destino") or inc.get("IP_Destino_Activo", "-")
+
             self.tree_incidents.insert("", tk.END, values=(
                 inc.get("ID_Incidente", ""),
                 inc.get("Fecha_Hora", ""),
                 inc.get("Titulo_Incidente", ""),
                 inc.get("Severidad", ""),
-                inc.get("Estado", ""),
-                inc.get("Tecnica_MITRE", ""),
                 inc.get("IP_Origen", ""),
-                inc.get("IP_Destino_Activo", "")
+                src_host,
+                dst_ip,
+                dst_host,
+                inc.get("Tecnica_MITRE", ""),
+                inc.get("Estado", "")
             ))
 
     def action_simulate_soc(self):

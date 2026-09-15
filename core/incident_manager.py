@@ -38,7 +38,10 @@ class IncidentManager:
             "Tactica_MITRE": incident_data.get("mitre_tactic", "N/A"),
             "Tecnica_MITRE": incident_data.get("mitre_technique", "N/A"),
             "IP_Origen": incident_data.get("src_ip", "0.0.0.0"),
-            "IP_Destino_Activo": incident_data.get("target_asset", "N/A"),
+            "Host_Origen": incident_data.get("src_host", incident_data.get("user", "N/A")),
+            "IP_Destino": incident_data.get("dst_ip", incident_data.get("target_asset", "N/A")),
+            "Host_Destino": incident_data.get("dst_host", incident_data.get("target_asset", "N/A")),
+            "IP_Destino_Activo": incident_data.get("target_asset", incident_data.get("dst_ip", "N/A")),
             "Usuario_Involucrado": incident_data.get("user", "N/A"),
             "MTTD_Minutos": incident_data.get("mttd_min", 5),
             "MTTR_Minutos": incident_data.get("mttr_min", 0),
@@ -50,7 +53,7 @@ class IncidentManager:
         incidents.append(new_row)
         fieldnames = list(new_row.keys())
         with open(self.incidents_csv, mode='w', newline='', encoding='utf-8-sig') as f:
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction='ignore')
             writer.writeheader()
             writer.writerows(incidents)
 

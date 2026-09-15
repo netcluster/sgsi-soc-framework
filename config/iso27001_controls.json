@@ -1,0 +1,494 @@
+{
+  "version": "ISO/IEC 27001:2022",
+  "domains": [
+    {
+      "id": "5",
+      "name": "Controles Organizacionales",
+      "controls": [
+        {
+          "code": "A.5.1",
+          "name": "Políticas de seguridad de la información",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.2",
+          "name": "Roles y responsabilidades de seguridad de la información",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.3",
+          "name": "Segregación de funciones",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.4",
+          "name": "Responsabilidades de la dirección",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.5",
+          "name": "Contacto con autoridades",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.6",
+          "name": "Contacto con grupos de interés especial",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.7",
+          "name": "Inteligencia de amenazas",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.8",
+          "name": "Seguridad de la información en gestión de proyectos",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.9",
+          "name": "Inventario de información y otros activos asociados",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.10",
+          "name": "Uso aceptable de la información y otros activos asociados",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.11",
+          "name": "Devolución de activos",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.12",
+          "name": "Clasificación de la información",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.13",
+          "name": "Etiquetado de información",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.14",
+          "name": "Transferencia de información",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.15",
+          "name": "Control de acceso",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.16",
+          "name": "Gestión de identidades",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.17",
+          "name": "Información de autenticación",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.18",
+          "name": "Derechos de acceso",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.19",
+          "name": "Seguridad de la información en relaciones con proveedores",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.20",
+          "name": "Abordaje de la seguridad de la información en acuerdos con proveedores",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.21",
+          "name": "Gestión de la seguridad de la información en la cadena de suministro de TIC",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.22",
+          "name": "Monitoreo, revisión y gestión de cambios de servicios de proveedores",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.23",
+          "name": "Seguridad de la información para el uso de servicios en la nube",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.24",
+          "name": "Planificación y preparación de la gestión de incidentes de seguridad",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.25",
+          "name": "Evaluación y decisión sobre eventos de seguridad de la información",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.26",
+          "name": "Respuesta a incidentes de seguridad de la información",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.27",
+          "name": "Aprendizaje de los incidentes de seguridad de la información",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.28",
+          "name": "Recopilación de evidencia",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.29",
+          "name": "Seguridad de la información durante una disrupción",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.30",
+          "name": "Preparación de las TIC para la continuidad del negocio",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.31",
+          "name": "Requisitos legales, estatutarios, regulatorios y contractuales",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.32",
+          "name": "Derechos de propiedad intelectual",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.33",
+          "name": "Protección de registros",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.34",
+          "name": "Privacidad y protección de datos personales (PII)",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.35",
+          "name": "Revisión independiente de la seguridad de la información",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.36",
+          "name": "Cumplimiento con políticas y estándares de seguridad",
+          "category": "Organizacional"
+        },
+        {
+          "code": "A.5.37",
+          "name": "Procedimientos operativos documentados",
+          "category": "Organizacional"
+        }
+      ]
+    },
+    {
+      "id": "6",
+      "name": "Controles de Personas",
+      "controls": [
+        {
+          "code": "A.6.1",
+          "name": "Investigación de antecedentes (Screening)",
+          "category": "Personas"
+        },
+        {
+          "code": "A.6.2",
+          "name": "Términos y condiciones de empleo",
+          "category": "Personas"
+        },
+        {
+          "code": "A.6.3",
+          "name": "Concienciación, educación y capacitación en seguridad",
+          "category": "Personas"
+        },
+        {
+          "code": "A.6.4",
+          "name": "Proceso disciplinario",
+          "category": "Personas"
+        },
+        {
+          "code": "A.6.5",
+          "name": "Responsabilidades tras la terminación o cambio de empleo",
+          "category": "Personas"
+        },
+        {
+          "code": "A.6.6",
+          "name": "Acuerdos de confidencialidad y no divulgación (NDA)",
+          "category": "Personas"
+        },
+        {
+          "code": "A.6.7",
+          "name": "Trabajo remoto",
+          "category": "Personas"
+        },
+        {
+          "code": "A.6.8",
+          "name": "Reporte de eventos de seguridad de la información",
+          "category": "Personas"
+        }
+      ]
+    },
+    {
+      "id": "7",
+      "name": "Controles Físicos",
+      "controls": [
+        {
+          "code": "A.7.1",
+          "name": "Perímetros de seguridad física",
+          "category": "Físico"
+        },
+        {
+          "code": "A.7.2",
+          "name": "Entrada física",
+          "category": "Físico"
+        },
+        {
+          "code": "A.7.3",
+          "name": "Seguridad de oficinas, salas e instalaciones",
+          "category": "Físico"
+        },
+        {
+          "code": "A.7.4",
+          "name": "Monitoreo de seguridad física",
+          "category": "Físico"
+        },
+        {
+          "code": "A.7.5",
+          "name": "Protección contra amenazas físicas y ambientales",
+          "category": "Físico"
+        },
+        {
+          "code": "A.7.6",
+          "name": "Trabajo en áreas seguras",
+          "category": "Físico"
+        },
+        {
+          "code": "A.7.7",
+          "name": "Escritorio limpio y pantalla limpia",
+          "category": "Físico"
+        },
+        {
+          "code": "A.7.8",
+          "name": "Emplazamiento y protección de equipos",
+          "category": "Físico"
+        },
+        {
+          "code": "A.7.9",
+          "name": "Seguridad de los activos fuera de las instalaciones",
+          "category": "Físico"
+        },
+        {
+          "code": "A.7.10",
+          "name": "Soportes de almacenamiento",
+          "category": "Físico"
+        },
+        {
+          "code": "A.7.11",
+          "name": "Servicios de suministros (Energía, climatización)",
+          "category": "Físico"
+        },
+        {
+          "code": "A.7.12",
+          "name": "Seguridad del cableado",
+          "category": "Físico"
+        },
+        {
+          "code": "A.7.13",
+          "name": "Mantenimiento de equipos",
+          "category": "Físico"
+        },
+        {
+          "code": "A.7.14",
+          "name": "Eliminación segura o reutilización de equipos",
+          "category": "Físico"
+        }
+      ]
+    },
+    {
+      "id": "8",
+      "name": "Controles Tecnológicos",
+      "controls": [
+        {
+          "code": "A.8.1",
+          "name": "Dispositivos de usuario final",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.2",
+          "name": "Derechos de acceso privilegiado",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.3",
+          "name": "Restricción de acceso a la información",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.4",
+          "name": "Acceso al código fuente",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.5",
+          "name": "Autenticación segura",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.6",
+          "name": "Gestión de capacidad",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.7",
+          "name": "Protección contra malware",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.8",
+          "name": "Gestión de vulnerabilidades técnicas",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.9",
+          "name": "Gestión de configuración",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.10",
+          "name": "Eliminación de información",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.11",
+          "name": "Enmascaramiento de datos",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.12",
+          "name": "Prevención de fuga de datos (DLP)",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.13",
+          "name": "Copia de seguridad de la información (Backup)",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.14",
+          "name": "Redundancia de las instalaciones de procesamiento de información",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.15",
+          "name": "Registro de eventos (Logging)",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.16",
+          "name": "Actividades de monitoreo (SOC / SIEM)",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.17",
+          "name": "Sincronización de relojes (NTP)",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.18",
+          "name": "Uso de programas utilitarios privilegiados",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.19",
+          "name": "Instalación de software en sistemas operativos",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.20",
+          "name": "Seguridad de las redes",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.21",
+          "name": "Seguridad de los servicios de red",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.22",
+          "name": "Segregación de redes",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.23",
+          "name": "Filtrado web",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.24",
+          "name": "Uso de criptografía",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.25",
+          "name": "Ciclo de vida de desarrollo seguro (SDLC)",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.26",
+          "name": "Requisitos de seguridad de aplicaciones",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.27",
+          "name": "Principios de arquitectura e ingeniería de sistemas seguros",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.28",
+          "name": "Codificación segura (Secure Coding)",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.29",
+          "name": "Pruebas de seguridad en desarrollo y aceptación",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.30",
+          "name": "Desarrollo subcontratado",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.31",
+          "name": "Separación de entornos de desarrollo, prueba y producción",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.32",
+          "name": "Gestión de cambios",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.33",
+          "name": "Información de prueba (Test Data)",
+          "category": "Tecnológico"
+        },
+        {
+          "code": "A.8.34",
+          "name": "Protección de sistemas de información durante pruebas de auditoría",
+          "category": "Tecnológico"
+        }
+      ]
+    }
+  ]
+}

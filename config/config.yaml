@@ -1,0 +1,31 @@
+# SGSI & SOC Framework Configuration
+app:
+  name: 'Antigravity SGSI & SOC Framework'
+  version: '1.0.0'
+  organization: 'Tu Organizacion'
+  timezone: 'UTC-3'
+
+google_integration:
+  mode: 'local_sync' # Opciones: 'service_account' (Usa Google API) o 'local_sync' (Archivos CSV para Google Drive)
+  service_account_file: 'config/google_credentials.json'
+  spreadsheet_name: 'SGSI_SOC_Master_Database'
+  worksheets:
+    activos: '01_Inventario_Activos'
+    riesgos: '02_Matriz_Riesgos'
+    soa: '03_SoA_ISO27001'
+    incidentes: '04_Registro_Incidentes'
+    telemetria_soc: '05_Telemetria_SOC'
+
+risk_matrix:
+  acceptable_threshold: 4     # Riesgo <= 4: Bajo (Aceptable)
+  medium_threshold: 9         # Riesgo 5 a 9: Medio
+  high_threshold: 16          # Riesgo 10 a 16: Alto
+  extreme_threshold: 25       # Riesgo 17 a 25: Extremo / Inaceptable
+
+soc_rules:
+  brute_force_failed_attempts: 5
+  brute_force_window_seconds: 120
+  port_scan_unique_ports: 10
+  port_scan_window_seconds: 60
+  sla_mttd_target_minutes: 15
+  sla_mttr_target_minutes: 60

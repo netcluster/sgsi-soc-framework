@@ -1,0 +1,94 @@
+﻿Codigo_Control,Nombre_Control,Dominio,Aplica,Justificacion_Inclusion_Exclusion,Estado_Implementacion,Porcentaje_Madurez,Evidencia_Documental,Responsable
+A.5.1,Políticas de seguridad de la información,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_5_1.pdf,Equipo de Seguridad / CISO
+A.5.2,Roles y responsabilidades de seguridad de la información,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_5_2.pdf,Equipo de Seguridad / CISO
+A.5.3,Segregación de funciones,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,Planificado,15,Doc-Ref-A_5_3.pdf,Equipo de Seguridad / CISO
+A.5.4,Responsabilidades de la dirección,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_5_4.pdf,Equipo de Seguridad / CISO
+A.5.5,Contacto con autoridades,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_5_5.pdf,Equipo de Seguridad / CISO
+A.5.6,Contacto con grupos de interés especial,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,En Proceso,50,Doc-Ref-A_5_6.pdf,Equipo de Seguridad / CISO
+A.5.7,Inteligencia de amenazas,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_5_7.pdf,Equipo de Seguridad / CISO
+A.5.8,Seguridad de la información en gestión de proyectos,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_5_8.pdf,Equipo de Seguridad / CISO
+A.5.9,Inventario de información y otros activos asociados,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,Planificado,15,Doc-Ref-A_5_9.pdf,Equipo de Seguridad / CISO
+A.5.10,Uso aceptable de la información y otros activos asociados,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_5_10.pdf,Equipo de Seguridad / CISO
+A.5.11,Devolución de activos,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_5_11.pdf,Equipo de Seguridad / CISO
+A.5.12,Clasificación de la información,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,En Proceso,50,Doc-Ref-A_5_12.pdf,Equipo de Seguridad / CISO
+A.5.13,Etiquetado de información,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_5_13.pdf,Equipo de Seguridad / CISO
+A.5.14,Transferencia de información,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_5_14.pdf,Equipo de Seguridad / CISO
+A.5.15,Control de acceso,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,Planificado,15,Doc-Ref-A_5_15.pdf,Equipo de Seguridad / CISO
+A.5.16,Gestión de identidades,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_5_16.pdf,Equipo de Seguridad / CISO
+A.5.17,Información de autenticación,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_5_17.pdf,Equipo de Seguridad / CISO
+A.5.18,Derechos de acceso,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,En Proceso,50,Doc-Ref-A_5_18.pdf,Equipo de Seguridad / CISO
+A.5.19,Seguridad de la información en relaciones con proveedores,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_5_19.pdf,Equipo de Seguridad / CISO
+A.5.20,Abordaje de la seguridad de la información en acuerdos con proveedores,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_5_20.pdf,Equipo de Seguridad / CISO
+A.5.21,Gestión de la seguridad de la información en la cadena de suministro de TIC,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,Planificado,15,Doc-Ref-A_5_21.pdf,Equipo de Seguridad / CISO
+A.5.22,"Monitoreo, revisión y gestión de cambios de servicios de proveedores",Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_5_22.pdf,Equipo de Seguridad / CISO
+A.5.23,Seguridad de la información para el uso de servicios en la nube,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_5_23.pdf,Equipo de Seguridad / CISO
+A.5.24,Planificación y preparación de la gestión de incidentes de seguridad,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,En Proceso,50,Doc-Ref-A_5_24.pdf,Equipo de Seguridad / CISO
+A.5.25,Evaluación y decisión sobre eventos de seguridad de la información,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_5_25.pdf,Equipo de Seguridad / CISO
+A.5.26,Respuesta a incidentes de seguridad de la información,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_5_26.pdf,Equipo de Seguridad / CISO
+A.5.27,Aprendizaje de los incidentes de seguridad de la información,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,Planificado,15,Doc-Ref-A_5_27.pdf,Equipo de Seguridad / CISO
+A.5.28,Recopilación de evidencia,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_5_28.pdf,Equipo de Seguridad / CISO
+A.5.29,Seguridad de la información durante una disrupción,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_5_29.pdf,Equipo de Seguridad / CISO
+A.5.30,Preparación de las TIC para la continuidad del negocio,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,En Proceso,50,Doc-Ref-A_5_30.pdf,Equipo de Seguridad / CISO
+A.5.31,"Requisitos legales, estatutarios, regulatorios y contractuales",Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_5_31.pdf,Equipo de Seguridad / CISO
+A.5.32,Derechos de propiedad intelectual,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_5_32.pdf,Equipo de Seguridad / CISO
+A.5.33,Protección de registros,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,Planificado,15,Doc-Ref-A_5_33.pdf,Equipo de Seguridad / CISO
+A.5.34,Privacidad y protección de datos personales (PII),Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_5_34.pdf,Equipo de Seguridad / CISO
+A.5.35,Revisión independiente de la seguridad de la información,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_5_35.pdf,Equipo de Seguridad / CISO
+A.5.36,Cumplimiento con políticas y estándares de seguridad,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,En Proceso,50,Doc-Ref-A_5_36.pdf,Equipo de Seguridad / CISO
+A.5.37,Procedimientos operativos documentados,Controles Organizacionales,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_5_37.pdf,Equipo de Seguridad / CISO
+A.6.1,Investigación de antecedentes (Screening),Controles de Personas,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_6_1.pdf,Equipo de Seguridad / CISO
+A.6.2,Términos y condiciones de empleo,Controles de Personas,SI,Requisito mandatorio de gestion y reduccion de riesgos,Planificado,15,Doc-Ref-A_6_2.pdf,Equipo de Seguridad / CISO
+A.6.3,"Concienciación, educación y capacitación en seguridad",Controles de Personas,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_6_3.pdf,Equipo de Seguridad / CISO
+A.6.4,Proceso disciplinario,Controles de Personas,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_6_4.pdf,Equipo de Seguridad / CISO
+A.6.5,Responsabilidades tras la terminación o cambio de empleo,Controles de Personas,SI,Requisito mandatorio de gestion y reduccion de riesgos,En Proceso,50,Doc-Ref-A_6_5.pdf,Equipo de Seguridad / CISO
+A.6.6,Acuerdos de confidencialidad y no divulgación (NDA),Controles de Personas,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_6_6.pdf,Equipo de Seguridad / CISO
+A.6.7,Trabajo remoto,Controles de Personas,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_6_7.pdf,Equipo de Seguridad / CISO
+A.6.8,Reporte de eventos de seguridad de la información,Controles de Personas,SI,Requisito mandatorio de gestion y reduccion de riesgos,Planificado,15,Doc-Ref-A_6_8.pdf,Equipo de Seguridad / CISO
+A.7.1,Perímetros de seguridad física,Controles Físicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_7_1.pdf,Equipo de Seguridad / CISO
+A.7.2,Entrada física,Controles Físicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_7_2.pdf,Equipo de Seguridad / CISO
+A.7.3,"Seguridad de oficinas, salas e instalaciones",Controles Físicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,En Proceso,50,Doc-Ref-A_7_3.pdf,Equipo de Seguridad / CISO
+A.7.4,Monitoreo de seguridad física,Controles Físicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_7_4.pdf,Equipo de Seguridad / CISO
+A.7.5,Protección contra amenazas físicas y ambientales,Controles Físicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_7_5.pdf,Equipo de Seguridad / CISO
+A.7.6,Trabajo en áreas seguras,Controles Físicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Planificado,15,Doc-Ref-A_7_6.pdf,Equipo de Seguridad / CISO
+A.7.7,Escritorio limpio y pantalla limpia,Controles Físicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_7_7.pdf,Equipo de Seguridad / CISO
+A.7.8,Emplazamiento y protección de equipos,Controles Físicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_7_8.pdf,Equipo de Seguridad / CISO
+A.7.9,Seguridad de los activos fuera de las instalaciones,Controles Físicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,En Proceso,50,Doc-Ref-A_7_9.pdf,Equipo de Seguridad / CISO
+A.7.10,Soportes de almacenamiento,Controles Físicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_7_10.pdf,Equipo de Seguridad / CISO
+A.7.11,"Servicios de suministros (Energía, climatización)",Controles Físicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_7_11.pdf,Equipo de Seguridad / CISO
+A.7.12,Seguridad del cableado,Controles Físicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Planificado,15,Doc-Ref-A_7_12.pdf,Equipo de Seguridad / CISO
+A.7.13,Mantenimiento de equipos,Controles Físicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_7_13.pdf,Equipo de Seguridad / CISO
+A.7.14,Eliminación segura o reutilización de equipos,Controles Físicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_7_14.pdf,Equipo de Seguridad / CISO
+A.8.1,Dispositivos de usuario final,Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,En Proceso,50,Doc-Ref-A_8_1.pdf,Equipo de Seguridad / CISO
+A.8.2,Derechos de acceso privilegiado,Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_8_2.pdf,Equipo de Seguridad / CISO
+A.8.3,Restricción de acceso a la información,Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_8_3.pdf,Equipo de Seguridad / CISO
+A.8.4,Acceso al código fuente,Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Planificado,15,Doc-Ref-A_8_4.pdf,Equipo de Seguridad / CISO
+A.8.5,Autenticación segura,Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_8_5.pdf,Equipo de Seguridad / CISO
+A.8.6,Gestión de capacidad,Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_8_6.pdf,Equipo de Seguridad / CISO
+A.8.7,Protección contra malware,Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,En Proceso,50,Doc-Ref-A_8_7.pdf,Equipo de Seguridad / CISO
+A.8.8,Gestión de vulnerabilidades técnicas,Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_8_8.pdf,Equipo de Seguridad / CISO
+A.8.9,Gestión de configuración,Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_8_9.pdf,Equipo de Seguridad / CISO
+A.8.10,Eliminación de información,Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Planificado,15,Doc-Ref-A_8_10.pdf,Equipo de Seguridad / CISO
+A.8.11,Enmascaramiento de datos,Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_8_11.pdf,Equipo de Seguridad / CISO
+A.8.12,Prevención de fuga de datos (DLP),Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_8_12.pdf,Equipo de Seguridad / CISO
+A.8.13,Copia de seguridad de la información (Backup),Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,En Proceso,50,Doc-Ref-A_8_13.pdf,Equipo de Seguridad / CISO
+A.8.14,Redundancia de las instalaciones de procesamiento de información,Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_8_14.pdf,Equipo de Seguridad / CISO
+A.8.15,Registro de eventos (Logging),Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_8_15.pdf,Equipo de Seguridad / CISO
+A.8.16,Actividades de monitoreo (SOC / SIEM),Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Planificado,15,Doc-Ref-A_8_16.pdf,Equipo de Seguridad / CISO
+A.8.17,Sincronización de relojes (NTP),Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_8_17.pdf,Equipo de Seguridad / CISO
+A.8.18,Uso de programas utilitarios privilegiados,Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_8_18.pdf,Equipo de Seguridad / CISO
+A.8.19,Instalación de software en sistemas operativos,Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,En Proceso,50,Doc-Ref-A_8_19.pdf,Equipo de Seguridad / CISO
+A.8.20,Seguridad de las redes,Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_8_20.pdf,Equipo de Seguridad / CISO
+A.8.21,Seguridad de los servicios de red,Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_8_21.pdf,Equipo de Seguridad / CISO
+A.8.22,Segregación de redes,Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Planificado,15,Doc-Ref-A_8_22.pdf,Equipo de Seguridad / CISO
+A.8.23,Filtrado web,Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_8_23.pdf,Equipo de Seguridad / CISO
+A.8.24,Uso de criptografía,Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_8_24.pdf,Equipo de Seguridad / CISO
+A.8.25,Ciclo de vida de desarrollo seguro (SDLC),Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,En Proceso,50,Doc-Ref-A_8_25.pdf,Equipo de Seguridad / CISO
+A.8.26,Requisitos de seguridad de aplicaciones,Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_8_26.pdf,Equipo de Seguridad / CISO
+A.8.27,Principios de arquitectura e ingeniería de sistemas seguros,Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_8_27.pdf,Equipo de Seguridad / CISO
+A.8.28,Codificación segura (Secure Coding),Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Planificado,15,Doc-Ref-A_8_28.pdf,Equipo de Seguridad / CISO
+A.8.29,Pruebas de seguridad en desarrollo y aceptación,Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_8_29.pdf,Equipo de Seguridad / CISO
+A.8.30,Desarrollo subcontratado,Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_8_30.pdf,Equipo de Seguridad / CISO
+A.8.31,"Separación de entornos de desarrollo, prueba y producción",Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,En Proceso,50,Doc-Ref-A_8_31.pdf,Equipo de Seguridad / CISO
+A.8.32,Gestión de cambios,Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_8_32.pdf,Equipo de Seguridad / CISO
+A.8.33,Información de prueba (Test Data),Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Implementado,100,Doc-Ref-A_8_33.pdf,Equipo de Seguridad / CISO
+A.8.34,Protección de sistemas de información durante pruebas de auditoría,Controles Tecnológicos,SI,Requisito mandatorio de gestion y reduccion de riesgos,Planificado,15,Doc-Ref-A_8_34.pdf,Equipo de Seguridad / CISO

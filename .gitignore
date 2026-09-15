@@ -1,0 +1,22 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.log
+
+# Entornos virtuales
+venv/
+env/
+.env/
+
+# Credenciales sensibles (NUNCA subir a GitHub)
+config/google_credentials.json
+
+# IDEs y editores
+.vscode/
+.idea/
+*.swp
+
+# Archivos del sistema
+Thumbs.db
+Desktop.ini

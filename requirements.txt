@@ -1,0 +1,6 @@
+# Dependencias del SGSI & SOC Framework
+# Nota: El núcleo del framework funciona con la biblioteca estándar de Python (sin dependencias externas).
+# Si deseas conectar directamente con la API de Google Sheets en la nube de Google Cloud, instala:
+gspread>=5.10.0
+oauth2client>=4.1.3
+pyyaml>=6.0

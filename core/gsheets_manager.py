@@ -144,6 +144,30 @@ class GSheetsManager:
         with open(cfg_path, "w", encoding="utf-8") as f:
             json.dump(config_dict, f, indent=2, ensure_ascii=False)
 
+    def test_connection(self, webhook_url: str) -> Dict[str, Any]:
+        """Verifica la conectividad con la Web App de Google Apps Script y obtiene el nombre de la hoja"""
+        if not webhook_url or not webhook_url.startswith("http"):
+            return {"status": "error", "message": "Por favor introduce una URL válida que empiece con https://"}
+
+        try:
+            import requests
+            resp = requests.get(webhook_url, timeout=15, allow_redirects=True)
+            if resp.status_code == 200:
+                try:
+                    data = resp.json()
+                    sheet_name = data.get("spreadsheet_name", "Desconocido")
+                    return {
+                        "status": "success",
+                        "message": f"Conectado exitosamente con la hoja '{sheet_name}'",
+                        "sheet_name": sheet_name,
+                        "sheet_url": data.get("spreadsheet_url", "")
+                    }
+                except Exception:
+                    return {"status": "success", "message": "Conexión establecida con la Web App de Google"}
+            return {"status": "error", "message": f"Google respondió con código HTTP {resp.status_code}"}
+        except Exception as e:
+            return {"status": "error", "message": f"No se pudo contactar a Google: {str(e)}"}
+
     def sync_to_google_sheets_webhook(self, webhook_url: str) -> Dict[str, Any]:
         """Envía todas las matrices del SGSI y SOC a una hoja de Google Sheets vía Google Apps Script Webhook"""
         import urllib.request

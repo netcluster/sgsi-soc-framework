@@ -1,24 +1,38 @@
 /**
- * SGSI (ISO/IEC 27001:2022) & SOC Framework - Google Sheets Synchronization Script
+ * ===================================================================
+ * 🛡️ SISTEMA SGSI (ISO/IEC 27001:2022) & SOC - GOOGLE SHEETS SYNC
+ * ===================================================================
  * 
- * Instrucciones de uso rápido:
- * 1. Crea una hoja de cálculo nueva en Google Sheets (https://sheets.new).
- * 2. En el menú superior, ve a: Extensiones > Apps Script.
- * 3. Borra todo el código existente y pega este archivo completo.
- * 4. Haz clic en "Implementar" (Deploy) > "Nueva implementación" (New deployment).
- * 5. Selecciona Tipo: "Aplicación web" (Web App).
+ * INSTRUCCIONES DE INSTALACIÓN (Solo se hace una vez - 1 minuto):
+ * 1. Abre tu hoja "SGSI" en Google Sheets (https://sheets.new).
+ * 2. En el menú superior: Extensiones > Apps Script.
+ * 3. Borra todo el código que aparezca y PEGA ESTE ARCHIVO COMPLETO.
+ * 4. Haz clic en "Implementar" > "Nueva implementación".
+ * 5. Tipo: "Aplicación web".
  * 6. Configura:
- *    - Ejecutar como: "Yo" (Tu cuenta de Google).
- *    - Quién tiene acceso: "Cualquiera" (Anyone).
- * 7. Haz clic en "Implementar", autoriza los permisos y copia la URL de la aplicación web.
- * 8. Pega la URL en la aplicación de escritorio SGSI & SOC (Botón 'Sincronizar Google Sheets').
+ *    - Descripción: SGSI SOC Sync
+ *    - Ejecutar como: "Yo" (tu correo de Google)
+ *    - Quién tiene acceso: "Cualquier persona" (Anyone)
+ * 7. Haz clic en "Implementar" y autoriza los permisos.
+ * 8. COPIA LA URL DE LA APLICACIÓN WEB (termina en /exec) y pégala en la App de Windows.
+ * ===================================================================
  */
+
+function doGet(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  return ContentService.createTextOutput(JSON.stringify({
+    status: "ok",
+    service: "SGSI & SOC Google Sheets Webhook Receiver",
+    spreadsheet_name: ss.getName(),
+    spreadsheet_url: ss.getUrl(),
+    timestamp: new Date().toISOString()
+  })).setMimeType(ContentService.MimeType.JSON);
+}
 
 function doPost(e) {
   try {
     var contents = JSON.parse(e.postData.contents);
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    
     var datasets = contents.datasets || {};
     var syncedTabs = [];
 
@@ -35,6 +49,7 @@ function doPost(e) {
     return ContentService.createTextOutput(JSON.stringify({
       status: "success",
       message: "Sincronización completada exitosamente.",
+      spreadsheet_name: ss.getName(),
       synced_sheets: syncedTabs,
       timestamp: new Date().toISOString()
     })).setMimeType(ContentService.MimeType.JSON);
@@ -45,14 +60,6 @@ function doPost(e) {
       message: error.toString()
     })).setMimeType(ContentService.MimeType.JSON);
   }
-}
-
-function doGet(e) {
-  return ContentService.createTextOutput(JSON.stringify({
-    status: "online",
-    service: "SGSI & SOC Google Sheets Webhook Receiver",
-    timestamp: new Date().toISOString()
-  })).setMimeType(ContentService.MimeType.JSON);
 }
 
 function updateSheetData(ss, sheetName, rowsData) {
@@ -80,7 +87,7 @@ function updateSheetData(ss, sheetName, rowsData) {
   var range = sheet.getRange(1, 1, values.length, headers.length);
   range.setValues(values);
 
-  // Formato visual profesional
+  // Formato visual ejecutivo institucional
   var headerRange = sheet.getRange(1, 1, 1, headers.length);
   headerRange.setBackground("#1B365D");
   headerRange.setFontColor("#FFFFFF");

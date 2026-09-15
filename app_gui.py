@@ -638,8 +638,8 @@ class SGSISOCApp(tk.Tk):
     def action_open_gsheets_modal(self):
         modal = tk.Toplevel(self)
         modal.title("☁️ Sincronización con Google Sheets & Drive")
-        modal.geometry("640x520")
-        modal.minsize(580, 480)
+        modal.geometry("680x560")
+        modal.minsize(620, 520)
         modal.configure(bg=self.color_bg)
         modal.grab_set()
 
@@ -649,13 +649,13 @@ class SGSISOCApp(tk.Tk):
         tk.Label(
             hdr,
             text="☁️ Traspaso de Datos a Google Sheets (Acceso Remoto)",
-            font=("Segoe UI", 11, "bold"),
+            font=("Segoe UI", 12, "bold"),
             bg=self.color_primary,
             fg="white"
         ).pack(anchor="w")
         tk.Label(
             hdr,
-            text="Sincroniza tus Activos, Matriz de Riesgos, SoA e Incidentes SOC a la nube de Google.",
+            text="Sincroniza tus Activos, Matriz de Riesgos ISO 27005, SoA ISO 27001 e Incidentes SOC a la nube.",
             font=("Segoe UI", 8),
             bg=self.color_primary,
             fg="#D1D5DB"
@@ -665,29 +665,131 @@ class SGSISOCApp(tk.Tk):
         content.pack(fill=tk.BOTH, expand=True)
 
         # Opción 1: Webhook Google Apps Script (0 Configuración Cloud)
-        f1 = tk.LabelFrame(content, text=" Opción 1: Sincronización Directa a Google Sheets (Apps Script Webhook) ", font=("Segoe UI", 9, "bold"), bg=self.color_card, padx=10, pady=10)
+        f1 = tk.LabelFrame(content, text=" Sincronización Directa a Google Sheets (1 Minuto de Configuración) ", font=("Segoe UI", 9, "bold"), bg=self.color_card, padx=12, pady=12)
         f1.pack(fill=tk.X, pady=(0, 10))
+
+        # Pasos guiados
+        steps_text = "1. En tu hoja 'SGSI' de Google Sheets, ve a Extensiones > Apps Script.\n" \
+                     "2. Pega el código usando el botón de abajo y dale a 'Implementar' > 'Nueva implementación' > 'Aplicación web' (Acceso: 'Cualquiera').\n" \
+                     "3. Copia la URL que termina en /exec, pégala aquí y haz clic en Sincronizar."
+        tk.Label(
+            f1,
+            text=steps_text,
+            font=("Segoe UI", 8),
+            bg=self.color_card,
+            fg="#2C3E50",
+            justify=tk.LEFT
+        ).pack(anchor="w", pady=(0, 8))
+
+        steps_bar = tk.Frame(f1, bg=self.color_card)
+        steps_bar.pack(fill=tk.X, pady=(0, 8))
+
+        def copy_script_to_clipboard():
+            script_path = "Google_Sheets_Sync_Script.gs"
+            if os.path.exists(script_path):
+                with open(script_path, "r", encoding="utf-8") as f:
+                    content_code = f.read()
+                modal.clipboard_clear()
+                modal.clipboard_append(content_code)
+                messagebox.showinfo(
+                    "Código Copiado al Portapapeles",
+                    "¡El código de sincronización fue copiado exitosamente!\n\n"
+                    "Pasos inmediatos:\n"
+                    "1. Ve a tu hoja 'SGSI' en Google Sheets.\n"
+                    "2. Menú superior: Extensiones > Apps Script.\n"
+                    "3. Borra todo, pega este código (Ctrl+V) y guarda.\n"
+                    "4. Haz clic en 'Implementar' > 'Nueva implementación' > 'Aplicación web'.\n"
+                    "5. Selecciona en Acceso: 'Cualquier persona' (Anyone) e Implementa.\n"
+                    "6. Pega la URL resultante aquí abajo."
+                )
+            else:
+                messagebox.showerror("Error", "No se encontró el archivo Google_Sheets_Sync_Script.gs")
+
+        btn_copy_code = tk.Button(
+            steps_bar,
+            text="📋 1. Copiar Código del Script",
+            font=("Segoe UI", 9, "bold"),
+            bg="#34495E",
+            fg="white",
+            relief=tk.FLAT,
+            padx=10,
+            pady=5,
+            command=copy_script_to_clipboard
+        )
+        btn_copy_code.pack(side=tk.LEFT, padx=(0, 6))
+
+        btn_open_sheets = tk.Button(
+            steps_bar,
+            text="🌐 2. Ir a Google Sheets ('SGSI')",
+            font=("Segoe UI", 9, "bold"),
+            bg="#2980B9",
+            fg="white",
+            relief=tk.FLAT,
+            padx=10,
+            pady=5,
+            command=lambda: webbrowser.open("https://docs.google.com/spreadsheets/u/0/")
+        )
+        btn_open_sheets.pack(side=tk.LEFT, padx=6)
 
         tk.Label(
             f1,
-            text="Pega la URL de tu Web App de Google Apps Script (o usa el botón de ayuda para generarla en 1 min):",
-            font=("Segoe UI", 8),
+            text="3. Pega aquí la URL de la Aplicación Web (termina en /exec):",
+            font=("Segoe UI", 8, "bold"),
             bg=self.color_card,
-            fg="#555555"
-        ).pack(anchor="w")
+            fg="#1B365D"
+        ).pack(anchor="w", pady=(4, 2))
 
         cfg = GSheetsManager.get_saved_config()
         saved_url = cfg.get("webhook_url", "")
 
-        url_entry = tk.Entry(f1, font=("Consolas", 9), relief=tk.SOLID, bd=1)
+        url_entry_box = tk.Frame(f1, bg=self.color_card)
+        url_entry_box.pack(fill=tk.X, pady=(0, 6))
+
+        url_entry = tk.Entry(url_entry_box, font=("Consolas", 9), relief=tk.SOLID, bd=1)
         url_entry.insert(0, saved_url)
-        url_entry.pack(fill=tk.X, pady=6)
+        url_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 6), ipady=3)
 
-        btn_box1 = tk.Frame(f1, bg=self.color_card)
-        btn_box1.pack(fill=tk.X, pady=(2, 0))
+        lbl_status_sync = tk.Label(f1, text="Estado: Listo para conectar", font=("Segoe UI", 8, "italic"), bg=self.color_card, fg="#7F8C8D")
 
-        lbl_status_sync = tk.Label(f1, text="Estado: Listo para sincronizar", font=("Segoe UI", 8, "italic"), bg=self.color_card, fg="#7F8C8D")
-        lbl_status_sync.pack(anchor="w", pady=(4, 0))
+        def test_webhook_connection():
+            webhook_url = url_entry.get().strip()
+            if not webhook_url:
+                messagebox.showwarning("URL requerida", "Por favor introduce la URL de la Web App de Google Apps Script.")
+                return
+
+            lbl_status_sync.config(text="⏳ Probando conexión con Google...", fg="#2980B9")
+            modal.update()
+
+            def run_test_thread():
+                mgr = GSheetsManager(mode="local_sync")
+                res = mgr.test_connection(webhook_url)
+                if res.get("status") == "success":
+                    sheet_name = res.get("sheet_name", "SGSI")
+                    self.after(0, lambda: [
+                        lbl_status_sync.config(text=f"🟢 {res.get('message')}", fg="#27AE60"),
+                        messagebox.showinfo("Conexión Exitosa", f"¡Conexión verificada con Google Sheets!\n\nHoja detectada: {sheet_name}\nYa puedes pulsar 'Sincronizar Todo a Google Sheets'.")
+                    ])
+                else:
+                    err = res.get("message", "Error desconocido")
+                    self.after(0, lambda: [
+                        lbl_status_sync.config(text=f"❌ {err}", fg="#E74C3C"),
+                        messagebox.showerror("Fallo de Conexión", f"No se pudo conectar con la Web App:\n{err}\n\nAsegúrate de que en 'Quién tiene acceso' elegiste 'Cualquiera' (Anyone).")
+                    ])
+
+            threading.Thread(target=run_test_thread, daemon=True).start()
+
+        btn_test = tk.Button(
+            url_entry_box,
+            text="🧪 Probar Conexión",
+            font=("Segoe UI", 8),
+            bg="#E2E8F0",
+            fg="#2C3E50",
+            relief=tk.FLAT,
+            padx=8,
+            pady=3,
+            command=test_webhook_connection
+        )
+        btn_test.pack(side=tk.RIGHT)
 
         def do_webhook_sync():
             webhook_url = url_entry.get().strip()
@@ -695,16 +797,24 @@ class SGSISOCApp(tk.Tk):
                 messagebox.showwarning("URL requerida", "Por favor introduce la URL de la Web App de Google Apps Script.")
                 return
 
-            lbl_status_sync.config(text="⏳ Enviando datos a Google Sheets...", fg="#2980B9")
+            lbl_status_sync.config(text="⏳ Enviando matrices (Activos, Riesgos, SoA, Incidentes) a Google Sheets...", fg="#2980B9")
             modal.update()
 
             def run_sync_thread():
                 mgr = GSheetsManager(mode="local_sync")
                 res = mgr.sync_to_google_sheets_webhook(webhook_url)
                 if res.get("status") == "success":
+                    rows = res.get("rows_synced", {})
                     self.after(0, lambda: [
                         lbl_status_sync.config(text="✅ ¡Sincronización con Google Sheets exitosa!", fg="#27AE60"),
-                        messagebox.showinfo("Google Sheets Sync", "¡Las 4 hojas (Activos, Riesgos, SoA e Incidentes) se han actualizado exitosamente en tu Google Sheets!")
+                        messagebox.showinfo(
+                            "Google Sheets Sincronizado",
+                            f"¡Traspaso completado con éxito a tu Google Sheet!\n\n"
+                            f"• Activos sincronizados: {rows.get('activos', 0)}\n"
+                            f"• Riesgos ISO 27005: {rows.get('riesgos', 0)}\n"
+                            f"• Controles SoA ISO 27001: {rows.get('soa', 0)}\n"
+                            f"• Incidentes SOC: {rows.get('incidentes', 0)}"
+                        )
                     ])
                 else:
                     err = res.get("message", "Error desconocido")
@@ -715,58 +825,26 @@ class SGSISOCApp(tk.Tk):
 
             threading.Thread(target=run_sync_thread, daemon=True).start()
 
-        def copy_script_to_clipboard():
-            script_path = "Google_Sheets_Sync_Script.gs"
-            if os.path.exists(script_path):
-                with open(script_path, "r", encoding="utf-8") as f:
-                    content_code = f.read()
-                modal.clipboard_clear()
-                modal.clipboard_append(content_code)
-                messagebox.showinfo("Código Copiado", "¡Código de Google Apps Script copiado al portapapeles!\n\nPasos:\n1. Abre tu Google Sheet (https://sheets.new)\n2. Ve a Extensiones > Apps Script\n3. Pega este código y dale a 'Implementar' > 'Nueva implementación' > 'Aplicación web' (Acceso: 'Cualquiera').\n4. Pega la URL resultante aquí.")
-            else:
-                messagebox.showerror("Error", "No se encontró el archivo Google_Sheets_Sync_Script.gs")
+        btn_box1 = tk.Frame(f1, bg=self.color_card)
+        btn_box1.pack(fill=tk.X, pady=(4, 0))
 
         btn_sync_now = tk.Button(
             btn_box1,
-            text="🚀 Sincronizar Matrices a Google Sheets",
-            font=("Segoe UI", 9, "bold"),
+            text="🚀 Sincronizar Todo a Google Sheets Ahora",
+            font=("Segoe UI", 10, "bold"),
             bg="#27AE60",
             fg="white",
             relief=tk.FLAT,
-            padx=10,
-            pady=5,
+            padx=15,
+            pady=7,
             command=do_webhook_sync
         )
-        btn_sync_now.pack(side=tk.LEFT, padx=(0, 5))
+        btn_sync_now.pack(side=tk.LEFT)
 
-        btn_copy_code = tk.Button(
-            btn_box1,
-            text="📋 Copiar Código Apps Script",
-            font=("Segoe UI", 9),
-            bg="#34495E",
-            fg="white",
-            relief=tk.FLAT,
-            padx=8,
-            pady=5,
-            command=copy_script_to_clipboard
-        )
-        btn_copy_code.pack(side=tk.LEFT, padx=5)
-
-        btn_open_sheets = tk.Button(
-            btn_box1,
-            text="🌐 Abrir Google Sheets",
-            font=("Segoe UI", 9),
-            bg="#2980B9",
-            fg="white",
-            relief=tk.FLAT,
-            padx=8,
-            pady=5,
-            command=lambda: webbrowser.open("https://sheets.new")
-        )
-        btn_open_sheets.pack(side=tk.LEFT, padx=5)
+        lbl_status_sync.pack(anchor="w", pady=(6, 0))
 
         # Opción 2: Archivos CSV para Google Drive & Looker Studio
-        f2 = tk.LabelFrame(content, text=" Opción 2: Exportar CSVs para Google Drive & Looker Studio ", font=("Segoe UI", 9, "bold"), bg=self.color_card, padx=10, pady=10)
+        f2 = tk.LabelFrame(content, text=" Opción 2: Exportar CSVs para Google Drive & Looker Studio ", font=("Segoe UI", 9, "bold"), bg=self.color_card, padx=12, pady=10)
         f2.pack(fill=tk.X)
 
         tk.Label(
@@ -775,7 +853,7 @@ class SGSISOCApp(tk.Tk):
             font=("Segoe UI", 8),
             bg=self.color_card,
             fg="#555555",
-            wraplength=540,
+            wraplength=580,
             justify=tk.LEFT
         ).pack(anchor="w", pady=(0, 6))
 

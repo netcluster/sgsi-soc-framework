@@ -1049,6 +1049,19 @@ class SGSISOCApp(tk.Tk):
         )
         btn_edit_ctrl.pack(side=tk.LEFT, padx=(0, 6))
 
+        btn_open_ctrl_evid = tk.Button(
+            actions_bar,
+            text="👁️ Abrir Evidencia",
+            font=("Segoe UI", 9),
+            bg="#34495E",
+            fg="white",
+            relief=tk.FLAT,
+            padx=10,
+            pady=4,
+            command=self.action_open_soa_evidence
+        )
+        btn_open_ctrl_evid.pack(side=tk.LEFT, padx=(0, 6))
+
         tk.Label(actions_bar, text="| Acciones Rápidas:", font=("Segoe UI", 9), bg=self.color_bg, fg="#7F8C8D").pack(side=tk.LEFT, padx=4)
 
         btn_quick_impl = tk.Button(
@@ -1198,6 +1211,53 @@ class SGSISOCApp(tk.Tk):
 
         self.status_lbl.config(text=f"✅ {count} controles SoA actualizados a '{status}' ({maturity}%) ({datetime.now().strftime('%H:%M:%S')})", fg="#27AE60")
 
+    def action_open_soa_evidence(self):
+        selected = self.tree_soa.selection()
+        if not selected:
+            messagebox.showwarning("Seleccionar Control", "Por favor selecciona un control de la tabla para ver su evidencia documental.")
+            return
+
+        item = self.tree_soa.item(selected[0])
+        code = item["values"][0]
+        name = item["values"][1]
+        evid = str(item["values"][7]).strip() if len(item["values"]) > 7 else ""
+
+        if not evid:
+            messagebox.showinfo("Sin Evidencia", f"El control {code} no tiene una evidencia documental registrada.")
+            return
+
+        if evid.startswith("http://") or evid.startswith("https://") or evid.startswith("www."):
+            webbrowser.open(evid)
+        elif os.path.exists(evid):
+            try:
+                os.startfile(os.path.abspath(evid))
+            except Exception as ex:
+                messagebox.showerror("Error al abrir archivo", f"No se pudo abrir el archivo:\n{ex}")
+        else:
+            # Check relative paths
+            alt_paths = [
+                os.path.join(os.getcwd(), evid),
+                os.path.join(os.path.expanduser("~"), "Google Drive", evid),
+                os.path.join(os.path.expanduser("~"), "OneDrive", evid),
+            ]
+            found = False
+            for p in alt_paths:
+                if os.path.exists(p):
+                    try:
+                        os.startfile(os.path.abspath(p))
+                        found = True
+                        break
+                    except:
+                        pass
+            if not found:
+                messagebox.showinfo(
+                    "Evidencia Documental",
+                    f"Control: {code} - {name}\n\n"
+                    f"Referencia registrada: {evid}\n\n"
+                    "💡 Para vincular y abrir directamente el archivo local o de Google Drive:\n"
+                    "Haz doble clic en el control o presiona '✏️ Editar Control...' y utiliza el botón '📁 Examinar...'."
+                )
+
     def action_edit_soa_control(self):
         selected = self.tree_soa.selection()
         if not selected:
@@ -1225,8 +1285,8 @@ class SGSISOCApp(tk.Tk):
         modal = tk.Toplevel(self)
         code = ctrl.get("Codigo_Control", "")
         modal.title(f"✏️ Administrar Control ISO 27001:2022 - {code}")
-        modal.geometry("680x590")
-        modal.minsize(640, 540)
+        modal.geometry("700x590")
+        modal.minsize(660, 540)
         modal.configure(bg=self.color_bg)
         modal.grab_set()
 
@@ -1327,7 +1387,85 @@ class SGSISOCApp(tk.Tk):
         tk.Label(row5, text="Evidencia Documental:", font=("Segoe UI", 9, "bold"), bg=self.color_bg, width=18, anchor="w").pack(side=tk.LEFT)
         e_evid = tk.Entry(row5, font=("Segoe UI", 9))
         e_evid.insert(0, ctrl.get("Evidencia_Documental", f"Doc-Ref-{code.replace('.', '_')}.pdf"))
-        e_evid.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        e_evid.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 6))
+
+        def browse_evidence():
+            file_selected = filedialog.askopenfilename(
+                title=f"Seleccionar Archivo de Evidencia para {code}",
+                filetypes=[
+                    ("Documentos y Evidencias", "*.pdf;*.docx;*.doc;*.xlsx;*.xls;*.pptx;*.txt;*.png;*.jpg;*.jpeg;*.zip;*.csv"),
+                    ("Archivos PDF (*.pdf)", "*.pdf"),
+                    ("Documentos Office (*.docx, *.xlsx)", "*.docx;*.xlsx;*.pptx"),
+                    ("Todos los archivos (*.*)", "*.*")
+                ],
+                parent=modal
+            )
+            if file_selected:
+                e_evid.delete(0, tk.END)
+                e_evid.insert(0, file_selected)
+
+        def open_evidence():
+            path_or_url = e_evid.get().strip()
+            if not path_or_url:
+                messagebox.showwarning("Sin Evidencia", "El campo de evidencia documental está vacío.", parent=modal)
+                return
+            
+            if path_or_url.startswith("http://") or path_or_url.startswith("https://") or path_or_url.startswith("www."):
+                webbrowser.open(path_or_url)
+            elif os.path.exists(path_or_url):
+                try:
+                    os.startfile(os.path.abspath(path_or_url))
+                except Exception as ex:
+                    messagebox.showerror("Error al abrir", f"No se pudo abrir el archivo:\n{ex}", parent=modal)
+            else:
+                alt_paths = [
+                    os.path.join(os.getcwd(), path_or_url),
+                    os.path.join(os.path.expanduser("~"), "Google Drive", path_or_url),
+                    os.path.join(os.path.expanduser("~"), "OneDrive", path_or_url),
+                ]
+                found = False
+                for p in alt_paths:
+                    if os.path.exists(p):
+                        try:
+                            os.startfile(os.path.abspath(p))
+                            found = True
+                            break
+                        except:
+                            pass
+                if not found:
+                    messagebox.showinfo(
+                        "Información de Evidencia",
+                        f"Referencia de Evidencia:\n{path_or_url}\n\n"
+                        "💡 Tip: Para abrir el archivo directamente con este botón, presiona '📁 Examinar...' "
+                        "y selecciona el archivo ubicado en tu carpeta sincronizada de Google Drive o disco local.",
+                        parent=modal
+                    )
+
+        btn_browse_evid = tk.Button(
+            row5,
+            text="📁 Examinar...",
+            font=("Segoe UI", 8, "bold"),
+            bg=self.color_accent,
+            fg="white",
+            relief=tk.FLAT,
+            padx=8,
+            pady=2,
+            command=browse_evidence
+        )
+        btn_browse_evid.pack(side=tk.LEFT, padx=(0, 4))
+
+        btn_open_evid = tk.Button(
+            row5,
+            text="👁️ Abrir",
+            font=("Segoe UI", 8),
+            bg="#34495E",
+            fg="white",
+            relief=tk.FLAT,
+            padx=8,
+            pady=2,
+            command=open_evidence
+        )
+        btn_open_evid.pack(side=tk.LEFT)
 
         # 6. Tarjeta de Resumen SoA
         f_info = tk.LabelFrame(form_frame, text=" ℹ️ Directriz de Cumplimiento ISO/IEC 27001:2022 ", font=("Segoe UI", 8, "bold"), bg=self.color_card, padx=10, pady=8)

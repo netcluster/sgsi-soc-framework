@@ -1,6 +1,7 @@
 ﻿ID_Riesgo,ID_Activo,Amenaza,Vulnerabilidad,Probabilidad_Inherente_1a5,Impacto_Inherente_1a5,Nivel_Riesgo_Inherente,Categoria_Riesgo_Inherente,Controles_Aplicados,Eficacia_Controles_Pct,Probabilidad_Residual_1a5,Impacto_Residual_1a5,Nivel_Riesgo_Residual,Categoria_Riesgo_Residual,Estrategia_Tratamiento,Responsable,Fecha_Revision
 RSG-001,ACT-001,Ransomware / Cifrado no autorizado,Falta de EDR en servidores legacy,4,5,20,Extremo,"A.8.7 (Antimalware), A.8.13 (Backups inmutables)",70%,2,3,6,Medio,Mitigar,CISO,2026-10-01
-RSG-002,ACT-002,Ataque de Denegacion de Servicio (DDoS),Ancho de banda saturable,3,4,12,Alto,"A.8.20 (WAF Cloud Armor), Rate Limiting",80%,1,2,2,Bajo,Aceptar,Ingeniero Cloud,2026-10-15
+RSG-002,ACT-002,Ataque de Denegacion de Servicio (DDoS),Ancho de banda saturable,4,4,16,Alto,"A.8.20 (WAF Cloud Armor), Rate Limiting",80%,2,2,4,Bajo,Aceptar,Ingeniero Cloud,2026-10-15
 RSG-003,ACT-003,Fuga de credenciales en repositorios,Hardcoding de API keys en commits,4,4,16,Alto,A.8.28 (Pre-commit hooks git-secrets / Trufflehog),85%,2,2,4,Bajo,Aceptar,DevSecOps Lead,2026-10-15
 RSG-004,ACT-004,Robo / Extravio de dispositivo portatil,Falta de cifrado de disco completo,3,3,9,Medio,A.8.1 (BitLocker forzado por MDM),90%,1,2,2,Bajo,Aceptar,Jefe de Soporte,2026-11-01
 RSG-005,ACT-005,Acceso no autorizado por fuerza bruta VPN,Autenticacion con solo usuario/contrasena,5,5,25,Extremo,A.8.5 (MFA Obligatorio con Google Authenticator),95%,2,3,6,Medio,Mitigar,Sysadmin,2026-09-30
+RSG-006,ACT-006,Falla dispositivo,Alta,2,4,8,Medio,"A.8.7 (Antimalware), A.8.13 (Backups)",80%,1,2,2,Bajo,Evitar,CISO,2026-09-15

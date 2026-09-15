@@ -106,22 +106,37 @@ class SGSISOCApp(tk.Tk):
         )
         title_lbl.pack(side=tk.LEFT, padx=15, pady=12)
 
-        ciso_btn = tk.Button(
+        # Botón Actualizar Todo
+        btn_refresh_all = tk.Button(
             header_frame,
-            text="🛡️ Dashboard CISO (En Vivo)",
+            text="🔄 Actualizar Todo",
             font=("Segoe UI", 9, "bold"),
-            bg="#8E44AD",
+            bg="#34495E",
             fg="white",
             relief=tk.FLAT,
             padx=10,
             pady=4,
-            command=self.action_open_ciso_dashboard
+            command=lambda: self.refresh_all_data(show_msg=True)
         )
-        ciso_btn.pack(side=tk.RIGHT, padx=6, pady=12)
+        btn_refresh_all.pack(side=tk.RIGHT, padx=6, pady=12)
+
+        # Botón Sincronizar Google Sheets
+        btn_gsheets = tk.Button(
+            header_frame,
+            text="☁️ Google Sheets...",
+            font=("Segoe UI", 9, "bold"),
+            bg="#27AE60",
+            fg="white",
+            relief=tk.FLAT,
+            padx=10,
+            pady=4,
+            command=self.action_open_gsheets_modal
+        )
+        btn_gsheets.pack(side=tk.RIGHT, padx=6, pady=12)
 
         dir_btn = tk.Button(
             header_frame,
-            text="👔 Dashboard Dirección (En Vivo)",
+            text="👔 Dash Dirección",
             font=("Segoe UI", 9, "bold"),
             bg="#2980B9",
             fg="white",
@@ -132,18 +147,40 @@ class SGSISOCApp(tk.Tk):
         )
         dir_btn.pack(side=tk.RIGHT, padx=6, pady=12)
 
-        sync_btn = tk.Button(
+        ciso_btn = tk.Button(
             header_frame,
-            text="🔄 Sync Google",
+            text="🛡️ Dash CISO",
             font=("Segoe UI", 9, "bold"),
-            bg="#27AE60",
+            bg="#8E44AD",
             fg="white",
             relief=tk.FLAT,
             padx=10,
             pady=4,
-            command=self.action_sync_data
+            command=self.action_open_ciso_dashboard
         )
-        sync_btn.pack(side=tk.RIGHT, padx=6, pady=12)
+        ciso_btn.pack(side=tk.RIGHT, padx=6, pady=12)
+
+    def refresh_all_data(self, show_msg: bool = False):
+        """Recarga todas las tablas, recalcula KPIs y regenera los dashboards HTML en vivo"""
+        self.load_incidents_table()
+        self.refresh_kpis()
+        self.load_risks_table()
+        self.load_soa_table()
+        
+        try:
+            dash_gen = DashboardGenerator()
+            dash_gen.generate_ciso_dashboard()
+            dash_gen.generate_direccion_dashboard()
+        except Exception as e:
+            print(f"[DashboardGen Error] {e}")
+
+        inc_count = len(IncidentManager().get_all_incidents())
+        self.status_lbl.config(
+            text=f"🟢 Servidor en Vivo Activo: http://localhost:{self.live_server_port} | Telemetría: {inc_count} incidentes al día ({datetime.now().strftime('%H:%M:%S')})",
+            fg="#27AE60"
+        )
+        if show_msg:
+            messagebox.showinfo("Actualización Completada", f"¡Tablas, KPIs y Dashboards actualizados con éxito!\nTotal incidentes registrados: {inc_count}")
 
     def _create_tabs(self):
         self.notebook = ttk.Notebook(self)
@@ -327,13 +364,13 @@ class SGSISOCApp(tk.Tk):
         btn_ref = tk.Button(
             actions_bar,
             text="🔄 Actualizar",
-            font=("Segoe UI", 9),
+            font=("Segoe UI", 9, "bold"),
             bg="#BDC3C7",
             fg="#2C3E50",
             relief=tk.FLAT,
             padx=10,
             pady=5,
-            command=self.load_incidents_table
+            command=lambda: self.refresh_all_data(show_msg=True)
         )
         btn_ref.pack(side=tk.RIGHT, padx=5)
 
@@ -596,25 +633,210 @@ class SGSISOCApp(tk.Tk):
         webbrowser.open(f"http://localhost:{self.live_server_port}/direccion")
 
     # -------------------------------------------------------------------------
-    # ACCIÓN SINCRONIZAR
+    # MODAL SINCRONIZACIÓN GOOGLE SHEETS
+    # -------------------------------------------------------------------------
+    def action_open_gsheets_modal(self):
+        modal = tk.Toplevel(self)
+        modal.title("☁️ Sincronización con Google Sheets & Drive")
+        modal.geometry("640x520")
+        modal.minsize(580, 480)
+        modal.configure(bg=self.color_bg)
+        modal.grab_set()
+
+        # Header modal
+        hdr = tk.Frame(modal, bg=self.color_primary, padx=15, pady=12)
+        hdr.pack(fill=tk.X)
+        tk.Label(
+            hdr,
+            text="☁️ Traspaso de Datos a Google Sheets (Acceso Remoto)",
+            font=("Segoe UI", 11, "bold"),
+            bg=self.color_primary,
+            fg="white"
+        ).pack(anchor="w")
+        tk.Label(
+            hdr,
+            text="Sincroniza tus Activos, Matriz de Riesgos, SoA e Incidentes SOC a la nube de Google.",
+            font=("Segoe UI", 8),
+            bg=self.color_primary,
+            fg="#D1D5DB"
+        ).pack(anchor="w", pady=(2, 0))
+
+        content = tk.Frame(modal, bg=self.color_bg, padx=15, pady=10)
+        content.pack(fill=tk.BOTH, expand=True)
+
+        # Opción 1: Webhook Google Apps Script (0 Configuración Cloud)
+        f1 = tk.LabelFrame(content, text=" Opción 1: Sincronización Directa a Google Sheets (Apps Script Webhook) ", font=("Segoe UI", 9, "bold"), bg=self.color_card, padx=10, pady=10)
+        f1.pack(fill=tk.X, pady=(0, 10))
+
+        tk.Label(
+            f1,
+            text="Pega la URL de tu Web App de Google Apps Script (o usa el botón de ayuda para generarla en 1 min):",
+            font=("Segoe UI", 8),
+            bg=self.color_card,
+            fg="#555555"
+        ).pack(anchor="w")
+
+        cfg = GSheetsManager.get_saved_config()
+        saved_url = cfg.get("webhook_url", "")
+
+        url_entry = tk.Entry(f1, font=("Consolas", 9), relief=tk.SOLID, bd=1)
+        url_entry.insert(0, saved_url)
+        url_entry.pack(fill=tk.X, pady=6)
+
+        btn_box1 = tk.Frame(f1, bg=self.color_card)
+        btn_box1.pack(fill=tk.X, pady=(2, 0))
+
+        lbl_status_sync = tk.Label(f1, text="Estado: Listo para sincronizar", font=("Segoe UI", 8, "italic"), bg=self.color_card, fg="#7F8C8D")
+        lbl_status_sync.pack(anchor="w", pady=(4, 0))
+
+        def do_webhook_sync():
+            webhook_url = url_entry.get().strip()
+            if not webhook_url:
+                messagebox.showwarning("URL requerida", "Por favor introduce la URL de la Web App de Google Apps Script.")
+                return
+
+            lbl_status_sync.config(text="⏳ Enviando datos a Google Sheets...", fg="#2980B9")
+            modal.update()
+
+            def run_sync_thread():
+                mgr = GSheetsManager(mode="local_sync")
+                res = mgr.sync_to_google_sheets_webhook(webhook_url)
+                if res.get("status") == "success":
+                    self.after(0, lambda: [
+                        lbl_status_sync.config(text="✅ ¡Sincronización con Google Sheets exitosa!", fg="#27AE60"),
+                        messagebox.showinfo("Google Sheets Sync", "¡Las 4 hojas (Activos, Riesgos, SoA e Incidentes) se han actualizado exitosamente en tu Google Sheets!")
+                    ])
+                else:
+                    err = res.get("message", "Error desconocido")
+                    self.after(0, lambda: [
+                        lbl_status_sync.config(text=f"❌ Error: {err[:50]}...", fg="#E74C3C"),
+                        messagebox.showerror("Error en Sincronización", f"No se pudo completar el traspaso:\n{err}")
+                    ])
+
+            threading.Thread(target=run_sync_thread, daemon=True).start()
+
+        def copy_script_to_clipboard():
+            script_path = "Google_Sheets_Sync_Script.gs"
+            if os.path.exists(script_path):
+                with open(script_path, "r", encoding="utf-8") as f:
+                    content_code = f.read()
+                modal.clipboard_clear()
+                modal.clipboard_append(content_code)
+                messagebox.showinfo("Código Copiado", "¡Código de Google Apps Script copiado al portapapeles!\n\nPasos:\n1. Abre tu Google Sheet (https://sheets.new)\n2. Ve a Extensiones > Apps Script\n3. Pega este código y dale a 'Implementar' > 'Nueva implementación' > 'Aplicación web' (Acceso: 'Cualquiera').\n4. Pega la URL resultante aquí.")
+            else:
+                messagebox.showerror("Error", "No se encontró el archivo Google_Sheets_Sync_Script.gs")
+
+        btn_sync_now = tk.Button(
+            btn_box1,
+            text="🚀 Sincronizar Matrices a Google Sheets",
+            font=("Segoe UI", 9, "bold"),
+            bg="#27AE60",
+            fg="white",
+            relief=tk.FLAT,
+            padx=10,
+            pady=5,
+            command=do_webhook_sync
+        )
+        btn_sync_now.pack(side=tk.LEFT, padx=(0, 5))
+
+        btn_copy_code = tk.Button(
+            btn_box1,
+            text="📋 Copiar Código Apps Script",
+            font=("Segoe UI", 9),
+            bg="#34495E",
+            fg="white",
+            relief=tk.FLAT,
+            padx=8,
+            pady=5,
+            command=copy_script_to_clipboard
+        )
+        btn_copy_code.pack(side=tk.LEFT, padx=5)
+
+        btn_open_sheets = tk.Button(
+            btn_box1,
+            text="🌐 Abrir Google Sheets",
+            font=("Segoe UI", 9),
+            bg="#2980B9",
+            fg="white",
+            relief=tk.FLAT,
+            padx=8,
+            pady=5,
+            command=lambda: webbrowser.open("https://sheets.new")
+        )
+        btn_open_sheets.pack(side=tk.LEFT, padx=5)
+
+        # Opción 2: Archivos CSV para Google Drive & Looker Studio
+        f2 = tk.LabelFrame(content, text=" Opción 2: Exportar CSVs para Google Drive & Looker Studio ", font=("Segoe UI", 9, "bold"), bg=self.color_card, padx=10, pady=10)
+        f2.pack(fill=tk.X)
+
+        tk.Label(
+            f2,
+            text="Genera archivos CSV codificados en UTF-8 listos para sincronizar con Google Drive o conectar directamente a Google Looker Studio.",
+            font=("Segoe UI", 8),
+            bg=self.color_card,
+            fg="#555555",
+            wraplength=540,
+            justify=tk.LEFT
+        ).pack(anchor="w", pady=(0, 6))
+
+        def open_drive_folder():
+            folder = os.path.abspath("sync_drive")
+            os.makedirs(folder, exist_ok=True)
+            os.startfile(folder)
+
+        def do_local_sync():
+            mgr = GSheetsManager(mode="local_sync")
+            res = mgr.sync_all_framework_data()
+            self.refresh_all_data()
+            messagebox.showinfo("Exportación Completada", f"Archivos CSV exportados correctamente en:\n{res['sync_folder']}")
+
+        btn_box2 = tk.Frame(f2, bg=self.color_card)
+        btn_box2.pack(fill=tk.X, pady=(2, 0))
+
+        tk.Button(
+            btn_box2,
+            text="💾 Generar CSVs Actualizados",
+            font=("Segoe UI", 9, "bold"),
+            bg="#1B365D",
+            fg="white",
+            relief=tk.FLAT,
+            padx=10,
+            pady=5,
+            command=do_local_sync
+        ).pack(side=tk.LEFT, padx=(0, 5))
+
+        tk.Button(
+            btn_box2,
+            text="📁 Abrir Carpeta Google Drive Local",
+            font=("Segoe UI", 9),
+            bg="#7F8C8D",
+            fg="white",
+            relief=tk.FLAT,
+            padx=8,
+            pady=5,
+            command=open_drive_folder
+        ).pack(side=tk.LEFT, padx=5)
+
+        # Botón Cerrar
+        tk.Button(
+            modal,
+            text="Cerrar",
+            font=("Segoe UI", 9),
+            bg="#BDC3C7",
+            fg="#2C3E50",
+            relief=tk.FLAT,
+            padx=15,
+            pady=4,
+            command=modal.destroy
+        ).pack(side=tk.BOTTOM, pady=10)
+
+    # -------------------------------------------------------------------------
+    # ACCIÓN SINCRONIZAR GENÉRICA
     # -------------------------------------------------------------------------
     def action_sync_data(self):
-        manager = GSheetsManager(mode="auto")
-        res = manager.sync_all_framework_data()
-        
-        self.refresh_kpis()
-        self.load_incidents_table()
-        self.load_risks_table()
-        
-        folder = res.get("sync_folder", "sync_drive")
-        messagebox.showinfo(
-            "Sincronización Exitosa",
-            f"¡Datos del SGSI & SOC sincronizados correctamente!\n\n"
-            f"Modo: {res['mode'].upper()}\n"
-            f"Carpeta Google Drive: {folder}\n"
-            f"Todos los archivos CSV están actualizados."
-        )
+        self.action_open_gsheets_modal()
 
 if __name__ == "__main__":
     app = SGSISOCApp()
     app.mainloop()
+

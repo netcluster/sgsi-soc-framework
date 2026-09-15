@@ -397,7 +397,7 @@ class DashboardGenerator:
     </div>
 
     <div class="footer">
-        Framework SGSI & SOC Antigravity • Consistencia Semiótica y Alto Ratio Data-Ink
+        Framework SGSI & SOC - SERMIG 2026
     </div>
 
     <script>
@@ -687,7 +687,7 @@ class DashboardGenerator:
     </div>
 
     <div class="footer">
-        Informe Ejecutivo Antigravity SGSI Framework • Alta Eficiencia Visual y Principios de Diseño Científico
+        Informe Ejecutivo SGSI - SERMIG 2026
     </div>
 
     <script>

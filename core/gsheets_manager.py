@@ -155,7 +155,8 @@ class GSheetsManager:
             if resp.status_code == 200:
                 try:
                     data = resp.json()
-                    sheet_name = data.get("spreadsheet_name", "Desconocido")
+                    sheet_name = data.get("spreadsheet_name", "SGSI")
+                    self.save_config({"webhook_url": webhook_url, "sheet_name": sheet_name, "last_test": datetime.now().isoformat()})
                     return {
                         "status": "success",
                         "message": f"Conectado exitosamente con la hoja '{sheet_name}'",
@@ -163,6 +164,7 @@ class GSheetsManager:
                         "sheet_url": data.get("spreadsheet_url", "")
                     }
                 except Exception:
+                    self.save_config({"webhook_url": webhook_url, "last_test": datetime.now().isoformat()})
                     return {"status": "success", "message": "Conexión establecida con la Web App de Google"}
             return {"status": "error", "message": f"Google respondió con código HTTP {resp.status_code}"}
         except Exception as e:
@@ -200,6 +202,7 @@ class GSheetsManager:
         incidentes_data = inc_mgr.get_all_incidents()
 
         payload = {
+            "accion": "subir_todo",
             "datasets": {
                 "01_Inventario_Activos": activos_data,
                 "02_Matriz_Riesgos": riesgos_data,
@@ -220,6 +223,10 @@ class GSheetsManager:
                     res_json = response.json()
                 except Exception:
                     res_json = {"raw": response.text[:200]}
+
+                if isinstance(res_json, dict) and res_json.get("status") == "error":
+                    return {"status": "error", "message": res_json.get("message", "Error reportado por Google Apps Script")}
+
                 return {
                     "status": "success",
                     "response": res_json,

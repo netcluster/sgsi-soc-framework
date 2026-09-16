@@ -17,6 +17,15 @@ config/google_credentials.json
 .idea/
 *.swp
 
+# PyInstaller y distribucion portable
+build/
+dist/
+*.spec
+
+# Logs
+*.log.txt
+*.log
+
 # Archivos del sistema
 Thumbs.db
 Desktop.ini

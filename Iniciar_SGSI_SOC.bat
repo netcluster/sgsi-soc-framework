@@ -1,4 +1,4 @@
 @echo off
-cd /d "C:\Users\RICARDO.ALFARO\Documents\sgsi_soc_framework"
-start wscript //nologo Iniciar_SGSI_SOC.vbs
-exit
+title SGSI & SOC Framework - SERMIG 2026
+cd /d "%~dp0"
+start pythonw app_gui.pyw

@@ -25,6 +25,7 @@ from soc_engine.log_parser import LogParser
 from soc_engine.threat_detector import ThreatDetector
 from soc_engine.syslog_collector import SyslogCollector
 from soc_engine.threat_intel_manager import ThreatIntelManager
+from soc_engine.ai_soc_engine import AISocEngine
 from simulators.generate_sample_telemetry import simulate_soc_activity
 from dashboards.dashboard_generator import DashboardGenerator
 from dashboards.live_server import LiveDashboardHandler, HTTPServer
@@ -397,6 +398,19 @@ class SGSISOCApp(tk.Tk):
         )
         btn_cti.pack(side=tk.LEFT, padx=5)
 
+        btn_ai = tk.Button(
+            actions_bar,
+            text="🤖 Asistente IA SOC...",
+            font=("Segoe UI", 9, "bold"),
+            bg="#16A085",
+            fg="white",
+            relief=tk.FLAT,
+            padx=10,
+            pady=5,
+            command=self.action_open_ai_assistant_modal
+        )
+        btn_ai.pack(side=tk.LEFT, padx=5)
+
         btn_ref = tk.Button(
             actions_bar,
             text="🔄 Actualizar",
@@ -633,6 +647,30 @@ class SGSISOCApp(tk.Tk):
         cb_preset_actions.set(inc.get("Accion_Correctiva", "Bloqueo perimetral IP en Firewall FortiGate / WAF"))
         cb_preset_actions.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
+        # Botón Asistente IA dentro del modal de respuesta
+        def apply_ai_suggestion():
+            try:
+                ai = AISocEngine()
+                diag = ai.diagnose_incident(inc)
+                cb_preset_actions.set(diag.get("recomendacion", "Aislamiento y bloqueo perimetral"))
+                sug_msg = f"Acción sugerida por IA ({diag.get('engine_used')}):\n\n{diag.get('recomendacion')}"
+                messagebox.showinfo("Sugerencia IA Aplicada", sug_msg, parent=modal)
+            except Exception as e:
+                messagebox.showerror("Error IA", f"No se pudo obtener sugerencia de IA: {e}", parent=modal)
+
+        btn_ai_sug = tk.Button(
+            r3,
+            text="✨ Sugerir con IA",
+            font=("Segoe UI", 8, "bold"),
+            bg="#16A085",
+            fg="white",
+            relief=tk.FLAT,
+            padx=8,
+            pady=2,
+            command=apply_ai_suggestion
+        )
+        btn_ai_sug.pack(side=tk.LEFT, padx=(6, 0))
+
         # Responsable SOC
         r4 = tk.Frame(f_resp, bg=self.color_card)
         r4.pack(fill=tk.X, pady=4)
@@ -705,6 +743,164 @@ class SGSISOCApp(tk.Tk):
             pady=6,
             command=modal.destroy
         ).pack(side=tk.RIGHT)
+
+
+    def action_open_ai_assistant_modal(self, target_incident=None):
+        """Abre la consola del Asistente de IA Open Source del SOC para triage, SOAR y reportes CSIRT."""
+        if not target_incident:
+            selected = self.tree_incidents.selection()
+            inc_mgr = IncidentManager()
+            incidents = inc_mgr.get_all_incidents()
+            if selected:
+                item = self.tree_incidents.item(selected[0])
+                inc_id = item["values"][0]
+                for inc in incidents:
+                    if inc.get("ID_Incidente") == inc_id:
+                        target_incident = inc
+                        break
+            elif incidents:
+                target_incident = incidents[-1]
+            else:
+                target_incident = {
+                    "ID_Incidente": "INC-SAMPLE",
+                    "Titulo_Incidente": "Actividad Anómala General de Red",
+                    "Severidad": "Media",
+                    "IP_Origen": "192.168.1.100",
+                    "target_asset": "Red Interna SERMIG",
+                    "Tecnica_MITRE": "T1071 - Application Layer Protocol",
+                    "Descripcion_Hallazgo": "Telemetría base del SOC SERMIG."
+                }
+
+        ai_engine = AISocEngine()
+        status = ai_engine.get_status_summary()
+        diag = ai_engine.diagnose_incident(target_incident)
+
+        modal = tk.Toplevel(self)
+        modal.title(f"🤖 Copiloto IA del SOC - {target_incident.get('ID_Incidente', 'General')}")
+        modal.geometry("780x620")
+        modal.minsize(720, 560)
+        modal.configure(bg=self.color_bg)
+        modal.grab_set()
+
+        # Header
+        hdr = tk.Frame(modal, bg="#117A65", padx=15, pady=10)
+        hdr.pack(fill=tk.X)
+        tk.Label(
+            hdr,
+            text="🤖 Copiloto de Inteligencia Artificial del SOC (SERMIG 2026)",
+            font=("Segoe UI", 12, "bold"),
+            bg="#117A65",
+            fg="white"
+        ).pack(anchor="w")
+        
+        status_txt = f"Modo Activo: {status['mode']} | Proveedor: {status['provider']} | Costo: {status['cost']}"
+        tk.Label(
+            hdr,
+            text=status_txt,
+            font=("Segoe UI", 8),
+            bg="#117A65",
+            fg="#A3E4D7"
+        ).pack(anchor="w", pady=(2, 0))
+
+        # Cuadro de Incidente Seleccionado
+        f_top = tk.Frame(modal, bg="#E8F8F5", padx=12, pady=6, highlightbackground="#A3E4D7", highlightthickness=1)
+        f_top.pack(fill=tk.X, padx=15, pady=8)
+        inc_title = target_incident.get("Titulo_Incidente") or target_incident.get("title") or "Incidente General"
+        inc_sev = target_incident.get("Severidad") or target_incident.get("severity") or "Media"
+        inc_ip = target_incident.get("IP_Origen") or target_incident.get("src_ip") or "Desconocida"
+        tk.Label(
+            f_top,
+            text=f"🎯 Incidente Analizado: [{target_incident.get('ID_Incidente', '-')}] {inc_title}",
+            font=("Segoe UI", 9, "bold"),
+            bg="#E8F8F5",
+            fg="#0E6251"
+        ).pack(anchor="w")
+        tk.Label(
+            f_top,
+            text=f"Severidad: {inc_sev} | IP Origen: {inc_ip} | Mapeo MITRE: {target_incident.get('Tecnica_MITRE', 'T1071')}",
+            font=("Segoe UI", 8),
+            bg="#E8F8F5",
+            fg="#16A085"
+        ).pack(anchor="w")
+
+        # Notebook con Pestañas
+        nb = ttk.Notebook(modal)
+        nb.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 10))
+
+        # Pestaña 1: Diagnóstico Táctico
+        t1 = tk.Frame(nb, bg=self.color_card, padx=12, pady=10)
+        nb.add(t1, text="  🧠 Diagnóstico & Análisis Táctico  ")
+
+        def add_diag_row(parent, label, val, fg_color="#2C3E50"):
+            f = tk.Frame(parent, bg=self.color_card)
+            f.pack(fill=tk.X, pady=4)
+            tk.Label(f, text=label, font=("Segoe UI", 9, "bold"), bg=self.color_card, fg="#1B365D", width=22, anchor="w").pack(side=tk.LEFT, anchor="n")
+            tk.Label(f, text=val, font=("Segoe UI", 9), bg=self.color_card, fg=fg_color, wraplength=480, justify=tk.LEFT).pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+        add_diag_row(t1, "Resumen de Amenaza:", diag.get("resumen", "-"))
+        add_diag_row(t1, "Vector de Ataque:", diag.get("vector", "-"), "#C0392B")
+        add_diag_row(t1, "Riesgo Institucional:", diag.get("riesgo", "-"), "#D35400")
+        add_diag_row(t1, "Recomendación Inmediata:", diag.get("recomendacion", "-"), "#27AE60")
+        add_diag_row(t1, "Controles ISO 27001:", diag.get("iso_controls", "-"), "#2980B9")
+        add_diag_row(t1, "Motor de Inferencia:", diag.get("engine_used", "-"), "#7F8C8D")
+
+        # Pestaña 2: Comandos de Firewall SOAR
+        t2 = tk.Frame(nb, bg=self.color_card, padx=12, pady=10)
+        nb.add(t2, text="  ⚡ Comandos de Mitigación SOAR  ")
+
+        tk.Label(t2, text="Comandos Perimetrales de Bloqueo Inmediato (Listos para Ejecutar):", font=("Segoe UI", 9, "bold"), bg=self.color_card, fg="#1B365D").pack(anchor="w", pady=(0, 5))
+
+        f_fw_sel = tk.Frame(t2, bg=self.color_card)
+        f_fw_sel.pack(fill=tk.X, pady=3)
+        tk.Label(f_fw_sel, text="Plataforma de Red:", font=("Segoe UI", 8, "bold"), bg=self.color_card).pack(side=tk.LEFT)
+
+        fw_dict = diag.get("firewall_commands", {})
+        fw_keys = list(fw_dict.keys()) if fw_dict else ["Fortinet FortiOS CLI"]
+
+        cb_fw = ttk.Combobox(f_fw_sel, values=fw_keys, state="readonly", width=35, font=("Segoe UI", 8))
+        cb_fw.set(fw_keys[0] if fw_keys else "")
+        cb_fw.pack(side=tk.LEFT, padx=6)
+
+        txt_fw = tk.Text(t2, font=("Consolas", 9), bg="#1E1E1E", fg="#00FF66", height=12, padx=8, pady=8)
+        txt_fw.pack(fill=tk.BOTH, expand=True, pady=6)
+
+        def update_fw_txt(event=None):
+            sel_k = cb_fw.get()
+            txt_fw.delete("1.0", tk.END)
+            txt_fw.insert("1.0", fw_dict.get(sel_k, "# No hay comando disponible"))
+
+        cb_fw.bind("<<ComboboxSelected>>", update_fw_txt)
+        update_fw_txt()
+
+        def copy_fw_cmd():
+            self.clipboard_clear()
+            self.clipboard_append(txt_fw.get("1.0", tk.END).strip())
+            messagebox.showinfo("Copiado", "Comando de bloqueo copiado al portapapeles.", parent=modal)
+
+        btn_copy_fw = tk.Button(t2, text="📋 Copiar Comando al Portapapeles", font=("Segoe UI", 8, "bold"), bg="#2980B9", fg="white", relief=tk.FLAT, padx=10, pady=4, command=copy_fw_cmd)
+        btn_copy_fw.pack(anchor="e")
+
+        # Pestaña 3: Notificación CSIRT Chile (Ley 21.663)
+        t3 = tk.Frame(nb, bg=self.color_card, padx=12, pady=10)
+        nb.add(t3, text="  ⚖️ Notificación CSIRT (Ley 21.663)  ")
+
+        tk.Label(t3, text="Borrador de Notificación Obligatoria de Incidente (Art. 7 Ley N° 21.663):", font=("Segoe UI", 9, "bold"), bg=self.color_card, fg="#1B365D").pack(anchor="w", pady=(0, 5))
+
+        txt_csirt = tk.Text(t3, font=("Segoe UI", 9), bg="#FDFEFE", fg="#2C3E50", height=12, padx=8, pady=8)
+        txt_csirt.pack(fill=tk.BOTH, expand=True, pady=6)
+        txt_csirt.insert("1.0", diag.get("csirt_report", ""))
+
+        def copy_csirt_report():
+            self.clipboard_clear()
+            self.clipboard_append(txt_csirt.get("1.0", tk.END).strip())
+            messagebox.showinfo("Copiado", "Acta de notificación CSIRT copiada al portapapeles.", parent=modal)
+
+        btn_copy_csirt = tk.Button(t3, text="📋 Copiar Notificación Formal CSIRT", font=("Segoe UI", 8, "bold"), bg="#117A65", fg="white", relief=tk.FLAT, padx=10, pady=4, command=copy_csirt_report)
+        btn_copy_csirt.pack(anchor="e")
+
+        # Footer modal
+        btn_close = tk.Button(modal, text="Cerrar Asistente IA", font=("Segoe UI", 9), bg="#BDC3C7", fg="#2C3E50", relief=tk.FLAT, padx=15, pady=5, command=modal.destroy)
+        btn_close.pack(side=tk.BOTTOM, pady=(0, 10))
 
     def action_open_cti_modal(self):
         modal = tk.Toplevel(self)

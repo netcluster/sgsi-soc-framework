@@ -1,8 +1,9 @@
 {
-  "last_updated": "2026-09-15 13:39:05",
-  "total_iocs": 1356,
+  "last_updated": "2026-09-16 11:07:51",
+  "total_iocs": 1362,
   "sources": [
-    "Feodo Tracker C2 (Abuse.ch)"
+    "Feodo Tracker C2 (Abuse.ch)",
+    "Tor Project Exit Nodes (6 IPs)"
   ],
   "iocs": {
     "185.220.101.5": {
@@ -9491,6 +9492,48 @@
       "malware": "Tor Exit Node"
     },
     "144.6.236.131": {
+      "source": "Tor Project Official Exit List",
+      "threat": "Nodo de Salida Tor (Tráfico Anónimo)",
+      "severity": "Alta",
+      "actor": "Red Tor / Evasión",
+      "malware": "Tor Exit Node"
+    },
+    "198.167.206.246": {
+      "source": "Tor Project Official Exit List",
+      "threat": "Nodo de Salida Tor (Tráfico Anónimo)",
+      "severity": "Alta",
+      "actor": "Red Tor / Evasión",
+      "malware": "Tor Exit Node"
+    },
+    "213.177.179.105": {
+      "source": "Tor Project Official Exit List",
+      "threat": "Nodo de Salida Tor (Tráfico Anónimo)",
+      "severity": "Alta",
+      "actor": "Red Tor / Evasión",
+      "malware": "Tor Exit Node"
+    },
+    "91.219.237.39": {
+      "source": "Tor Project Official Exit List",
+      "threat": "Nodo de Salida Tor (Tráfico Anónimo)",
+      "severity": "Alta",
+      "actor": "Red Tor / Evasión",
+      "malware": "Tor Exit Node"
+    },
+    "41.250.227.15": {
+      "source": "Tor Project Official Exit List",
+      "threat": "Nodo de Salida Tor (Tráfico Anónimo)",
+      "severity": "Alta",
+      "actor": "Red Tor / Evasión",
+      "malware": "Tor Exit Node"
+    },
+    "65.87.7.202": {
+      "source": "Tor Project Official Exit List",
+      "threat": "Nodo de Salida Tor (Tráfico Anónimo)",
+      "severity": "Alta",
+      "actor": "Red Tor / Evasión",
+      "malware": "Tor Exit Node"
+    },
+    "59.120.32.214": {
       "source": "Tor Project Official Exit List",
       "threat": "Nodo de Salida Tor (Tráfico Anónimo)",
       "severity": "Alta",

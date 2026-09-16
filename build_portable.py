@@ -22,6 +22,9 @@ def build_portable_package():
     icon_path = os.path.join(base_dir, "la-seguridad-cibernetica.ico")
     icon_arg = f"--icon={icon_path}" if os.path.exists(icon_path) else ""
 
+    # Limpieza previa limpia de directorios
+    subprocess.run(["powershell", "-Command", "Remove-Item -Recurse -Force dist, build -ErrorAction SilentlyContinue"], cwd=base_dir)
+
     cmd = [
         sys.executable, "-m", "PyInstaller",
         "--noconfirm",

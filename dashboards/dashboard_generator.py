@@ -251,17 +251,31 @@ class DashboardGenerator:
 
         # ---------------------------------------------------------------------
         # GRÁFICO 4: DISTRIBUCIÓN SEMIÓTICA POR SEVERIDAD
-        # Principio: Consistencia de Color y Alto Data-Ink
+        # Principio: Consistencia de Color y Alto Data-Ink (Orden Jerárquico)
         # ---------------------------------------------------------------------
-        sev_counts = kpis.get("by_severity", {})
+        sev_counts = {}
+        for inc in incidents:
+            s = inc.get("Severidad", "Media").strip().capitalize()
+            if "crit" in s.lower():
+                s = "Crítica"
+            elif "alt" in s.lower():
+                s = "Alta"
+            elif "med" in s.lower():
+                s = "Media"
+            elif "baj" in s.lower():
+                s = "Baja"
+            sev_counts[s] = sev_counts.get(s, 0) + 1
+
         ordered_sev = ["Crítica", "Alta", "Media", "Baja"]
-        sev_vals = [sev_counts.get(s, 0) + (sev_counts.get("Critica", 0) if s == "Crítica" else 0) for s in ordered_sev]
+        sev_vals = [sev_counts.get(s, 0) for s in ordered_sev]
         sev_colors = [COLOR_CRITICAL, COLOR_HIGH, COLOR_MEDIUM, COLOR_LOW]
 
         fig_sev = go.Figure(data=[go.Pie(
             labels=ordered_sev,
             values=sev_vals,
             hole=0.62,
+            sort=False,
+            direction="clockwise",
             marker=dict(colors=sev_colors, line=dict(color='white', width=2)),
             textinfo='percent+value',
             textfont=dict(size=11, color='white', family='Segoe UI'),
@@ -274,7 +288,15 @@ class DashboardGenerator:
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
             font=dict(family="Segoe UI, Arial", size=11, color=COLOR_PRIMARY),
-            legend=dict(orientation="v", yanchor="middle", y=0.5, xanchor="right", x=1.1, font=dict(size=10))
+            legend=dict(
+                orientation="v",
+                yanchor="middle",
+                y=0.5,
+                xanchor="right",
+                x=1.1,
+                font=dict(size=10),
+                traceorder="normal"
+            )
         )
         html_sev = fig_sev.to_html(full_html=False, include_plotlyjs=False, config=PLOTLY_CONFIG)
 
@@ -574,21 +596,31 @@ class DashboardGenerator:
 
         # ---------------------------------------------------------------------
         # GRÁFICO 4: INVENTARIO DE ACTIVOS POR CRITICIDAD
-        # Principio: Jerarquía Semiótica de Criticidad
+        # Principio: Jerarquía Semiótica de Criticidad (Orden Jerárquico)
         # ---------------------------------------------------------------------
         crit_counts = {}
         for a in activos:
-            c = a.get("Nivel_Criticidad", "Medio").strip()
+            c = a.get("Nivel_Criticidad", "Medio").strip().capitalize()
+            if "crit" in c.lower():
+                c = "Crítico"
+            elif "alt" in c.lower():
+                c = "Alto"
+            elif "med" in c.lower():
+                c = "Medio"
+            elif "baj" in c.lower():
+                c = "Bajo"
             crit_counts[c] = crit_counts.get(c, 0) + 1
 
         ordered_crit = ["Crítico", "Alto", "Medio", "Bajo"]
-        crit_vals = [crit_counts.get(c, 0) + (crit_counts.get("Critico", 0) if c == "Crítico" else 0) for c in ordered_crit]
+        crit_vals = [crit_counts.get(c, 0) for c in ordered_crit]
         crit_colors = [COLOR_CRITICAL, COLOR_HIGH, COLOR_MEDIUM, COLOR_LOW]
 
         fig_activos = go.Figure(data=[go.Pie(
             labels=ordered_crit,
             values=crit_vals,
             hole=0.6,
+            sort=False,
+            direction="clockwise",
             marker=dict(colors=crit_colors, line=dict(color='white', width=2)),
             textinfo='label+percent',
             textfont=dict(size=11, color='white', family='Segoe UI')
@@ -600,7 +632,15 @@ class DashboardGenerator:
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
             font=dict(family="Segoe UI, Arial", size=11, color=COLOR_PRIMARY),
-            legend=dict(orientation="v", yanchor="middle", y=0.5, xanchor="right", x=1.1, font=dict(size=10))
+            legend=dict(
+                orientation="v",
+                yanchor="middle",
+                y=0.5,
+                xanchor="right",
+                x=1.1,
+                font=dict(size=10),
+                traceorder="normal"
+            )
         )
         html_activos = fig_activos.to_html(full_html=False, include_plotlyjs=False, config=PLOTLY_CONFIG)
 

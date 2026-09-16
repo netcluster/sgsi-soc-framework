@@ -1,5 +1,5 @@
 ﻿ID_Activo,Nombre_Activo,Tipo_Activo,Propietario,Custodio,Ubicacion,Confidencialidad_1a5,Integridad_1a5,Disponibilidad_1a5,Criticidad_Calculada,Nivel_Criticidad,Estado
-ACT-001,Base de Datos de Clientes (PostgreSQL),Informacion / Base de Datos,Gerente Comercial,DBA Lead,Google Cloud SQL,5,5,4,14,Critico,Activo
+ACT-001,Base de Datos de Clientes (PostgreSQL),Informacion / Base de Datos,Gerente Comercial,DBA Lead,Google Cloud SQL,5,5,5,15,Critico,Activo
 ACT-002,Servidor de Aplicacion Web ERP,Hardware / Servidor Virtual,Gerente de TI,Sysadmin,GCP Compute Engine,4,4,5,13,Alto,Activo
 ACT-003,Codigo Fuente Core Platform,Software / Repositorio,CTO,DevSecOps Lead,GitHub Enterprise,5,4,4,13,Alto,Activo
 ACT-004,Laptops de Personal Clave,Hardware / Endpoint,Jefe de Soporte,Usuarios Finales,Oficina Central / Remoto,3,3,3,9,Medio,Activo

@@ -4,4 +4,5 @@ RSG-002,ACT-002,Ataque de Denegacion de Servicio (DDoS),Ancho de banda saturable
 RSG-003,ACT-003,Fuga de credenciales en repositorios,Hardcoding de API keys en commits,4,4,16,Alto,A.8.28 (Pre-commit hooks git-secrets / Trufflehog),85%,2,2,4,Bajo,Aceptar,DevSecOps Lead,2026-10-15
 RSG-004,ACT-004,Robo / Extravio de dispositivo portatil,Falta de cifrado de disco completo,3,3,9,Medio,A.8.1 (BitLocker forzado por MDM),90%,1,2,2,Bajo,Aceptar,Jefe de Soporte,2026-11-01
 RSG-005,ACT-005,Acceso no autorizado por fuerza bruta VPN,Autenticacion con solo usuario/contrasena,5,5,25,Extremo,A.8.5 (MFA Obligatorio con Google Authenticator),95%,2,3,6,Medio,Mitigar,Sysadmin,2026-09-30
-RSG-006,ACT-006,Falla dispositivo,Alta,2,4,8,Medio,"A.8.7 (Antimalware), A.8.13 (Backups)",80%,1,2,2,Bajo,Evitar,CISO,2026-09-15
+RSG-006,ACT-006,Falla dispositivo,Corte energía eléctrica,2,4,8,Medio,"A.8.7 (Antimalware), A.8.13 (Backups)",80%,1,2,2,Bajo,Evitar,CISO,2026-09-15
+RSG-007,ACT-001,Spear phishing,Area de marketing telefónico,3,4,12,Alto,"A.8.7 (Antimalware), A.8.13 (Backups)",70%,2,3,6,Medio,Aceptar,CISO,2026-09-15

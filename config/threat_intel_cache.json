@@ -1,9 +1,8 @@
 {
-  "last_updated": "2026-09-15 13:31:00",
+  "last_updated": "2026-09-15 13:39:05",
   "total_iocs": 1356,
   "sources": [
-    "Feodo Tracker C2 (Abuse.ch)",
-    "Tor Project Exit Nodes (1342 IPs)"
+    "Feodo Tracker C2 (Abuse.ch)"
   ],
   "iocs": {
     "185.220.101.5": {

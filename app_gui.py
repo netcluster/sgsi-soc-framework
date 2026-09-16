@@ -225,7 +225,7 @@ class SGSISOCApp(tk.Tk):
         self.btn_refresh_all.pack(side=tk.RIGHT, padx=4, pady=12)
 
         dir_btn = tk.Button(
-            header_frame,
+            self.header_frame,
             text="👔 Dash Dirección",
             font=("Segoe UI", 9, "bold"),
             bg="#2980B9",
@@ -238,7 +238,7 @@ class SGSISOCApp(tk.Tk):
         dir_btn.pack(side=tk.RIGHT, padx=6, pady=12)
 
         ciso_btn = tk.Button(
-            header_frame,
+            self.header_frame,
             text="🛡️ Dash CISO",
             font=("Segoe UI", 9, "bold"),
             bg="#8E44AD",

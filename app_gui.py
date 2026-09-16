@@ -21,6 +21,8 @@ from core.soa_manager import SoAManager
 from core.asset_manager import AssetManager
 from core.incident_manager import IncidentManager
 from core.gsheets_manager import GSheetsManager
+from core.auth_manager import AuthManager
+from core.settings_manager import SettingsManager
 from soc_engine.log_parser import LogParser
 from soc_engine.threat_detector import ThreatDetector
 from soc_engine.syslog_collector import SyslogCollector
@@ -46,20 +48,42 @@ class SGSISOCApp(tk.Tk):
 
         self.configure(bg=self.color_bg)
 
+        # Gestores de Autenticación y Configuración Institucional
+        self.auth_manager = AuthManager()
+        self.settings_manager = SettingsManager()
+
+        # Actualizar título institucional
+        org_name = self.settings_manager.get("org_name", "SERMIG")
+        period = self.settings_manager.get("framework_period", "2026")
+        self.title(f"🛡️ SGSI & SOC Framework - {org_name} ({period})")
+
+        # Sesión de usuario activa
+        self.current_user = None
+        self.current_role = "Visor"
+
         # Estado del colector Syslog y Servidor Live
         self.syslog_collector = None
         self.syslog_thread = None
         self.live_server = None
-        self.live_server_port = 8080
+        self.live_server_port = int(self.settings_manager.get("live_server_port", 8080))
 
         # Estilos TTK
         self.style = ttk.Style(self)
         self.style.theme_use("clam")
         
         self._configure_styles()
+
+        # Solicitar Login antes de inicializar la interfaz
+        if not self._prompt_login():
+            self.destroy()
+            return
+
         self._create_header()
         self._create_tabs()
         self._create_footer()
+
+        # Aplicar restricciones de perfil RBAC
+        self._apply_role_permissions()
 
         # Iniciar Servidor en Vivo automáticamente en segundo plano
         self._auto_start_live_server()
@@ -99,45 +123,106 @@ class SGSISOCApp(tk.Tk):
         self.style.map("Primary.TButton", background=[("active", self.color_accent)])
 
     def _create_header(self):
-        header_frame = tk.Frame(self, bg=self.color_primary, height=65)
-        header_frame.pack(fill=tk.X, side=tk.TOP)
+        self.header_frame = tk.Frame(self, bg=self.color_primary, height=65)
+        self.header_frame.pack(fill=tk.X, side=tk.TOP)
 
-        title_lbl = tk.Label(
-            header_frame,
-            text="🛡️ SISTEMA DE GESTIÓN DE SEGURIDAD (SGSI) & SOC",
-            font=("Segoe UI", 12, "bold"),
+        org_name = self.settings_manager.get("org_name", "Servicio Nacional de Migraciones")
+        period = self.settings_manager.get("framework_period", "2026")
+
+        self.title_lbl = tk.Label(
+            self.header_frame,
+            text=f"🏛️ {org_name} | SGSI & SOC {period}",
+            font=("Segoe UI", 11, "bold"),
             bg=self.color_primary,
             fg="white"
         )
-        title_lbl.pack(side=tk.LEFT, padx=15, pady=12)
+        self.title_lbl.pack(side=tk.LEFT, padx=15, pady=12)
 
-        # Botón Actualizar Todo
-        btn_refresh_all = tk.Button(
-            header_frame,
-            text="🔄 Actualizar Todo",
-            font=("Segoe UI", 9, "bold"),
-            bg="#34495E",
+        # Badge Usuario y Botón Cerrar Sesión
+        u_name = self.current_user.get("full_name", "Usuario") if self.current_user else "Usuario"
+        u_role = self.current_role
+
+        btn_logout = tk.Button(
+            self.header_frame,
+            text="🚪 Salir",
+            font=("Segoe UI", 8, "bold"),
+            bg="#C0392B",
             fg="white",
             relief=tk.FLAT,
-            padx=10,
-            pady=4,
-            command=lambda: self.refresh_all_data(show_msg=True)
+            padx=6,
+            pady=3,
+            command=self._logout_and_relogin
         )
-        btn_refresh_all.pack(side=tk.RIGHT, padx=6, pady=12)
+        btn_logout.pack(side=tk.RIGHT, padx=(4, 15), pady=12)
+
+        self.user_badge = tk.Label(
+            self.header_frame,
+            text=f"👤 {u_name} [{u_role}]",
+            font=("Segoe UI", 8, "bold"),
+            bg="#0E2340",
+            fg="#A3E4D7",
+            padx=8,
+            pady=4
+        )
+        self.user_badge.pack(side=tk.RIGHT, padx=4, pady=12)
+
+        # Botón Configuración (Solo Administrador)
+        self.btn_settings = tk.Button(
+            self.header_frame,
+            text="⚙️ Ajustes...",
+            font=("Segoe UI", 9, "bold"),
+            bg="#7D3C98",
+            fg="white",
+            relief=tk.FLAT,
+            padx=8,
+            pady=4,
+            command=self._open_settings_modal
+        )
+        if self.current_role == "Administrador":
+            self.btn_settings.pack(side=tk.RIGHT, padx=4, pady=12)
+
+        # Botón Mantenedor Usuarios (Solo Administrador)
+        self.btn_user_mgr = tk.Button(
+            self.header_frame,
+            text="👥 Usuarios...",
+            font=("Segoe UI", 9, "bold"),
+            bg="#2980B9",
+            fg="white",
+            relief=tk.FLAT,
+            padx=8,
+            pady=4,
+            command=self._open_user_manager_modal
+        )
+        if self.current_role == "Administrador":
+            self.btn_user_mgr.pack(side=tk.RIGHT, padx=4, pady=12)
 
         # Botón Sincronizar Google Sheets
-        btn_gsheets = tk.Button(
-            header_frame,
+        self.btn_gsheets = tk.Button(
+            self.header_frame,
             text="☁️ Google Sheets...",
             font=("Segoe UI", 9, "bold"),
             bg="#27AE60",
             fg="white",
             relief=tk.FLAT,
-            padx=10,
+            padx=8,
             pady=4,
             command=self.action_open_gsheets_modal
         )
-        btn_gsheets.pack(side=tk.RIGHT, padx=6, pady=12)
+        self.btn_gsheets.pack(side=tk.RIGHT, padx=4, pady=12)
+
+        # Botón Actualizar Todo
+        self.btn_refresh_all = tk.Button(
+            self.header_frame,
+            text="🔄 Actualizar Todo",
+            font=("Segoe UI", 9, "bold"),
+            bg="#34495E",
+            fg="white",
+            relief=tk.FLAT,
+            padx=8,
+            pady=4,
+            command=lambda: self.refresh_all_data(show_msg=True)
+        )
+        self.btn_refresh_all.pack(side=tk.RIGHT, padx=4, pady=12)
 
         dir_btn = tk.Button(
             header_frame,
@@ -744,6 +829,364 @@ class SGSISOCApp(tk.Tk):
             command=modal.destroy
         ).pack(side=tk.RIGHT)
 
+
+
+    def _prompt_login(self) -> bool:
+        """Presenta diálogo modal de inicio de sesión con control RBAC."""
+        login_success = False
+        dialog = tk.Toplevel(self)
+        dialog.title("🔐 Acceso SGSI & SOC Framework")
+        dialog.geometry("420x460")
+        dialog.resizable(False, False)
+        dialog.configure(bg=self.color_primary)
+        dialog.grab_set()
+
+        # Centrar diálogo
+        dialog.update_idletasks()
+        x = (dialog.winfo_screenwidth() // 2) - 210
+        y = (dialog.winfo_screenheight() // 2) - 230
+        dialog.geometry(f"+{x}+{y}")
+
+        # Header institucional del Login
+        tk.Label(dialog, text="🛡️", font=("Segoe UI", 34), bg=self.color_primary, fg="white").pack(pady=(20, 5))
+        
+        org_name = self.settings_manager.get("org_name", "Servicio Nacional de Migraciones")
+        tk.Label(dialog, text=org_name, font=("Segoe UI", 11, "bold"), bg=self.color_primary, fg="white", wraplength=380).pack()
+        tk.Label(dialog, text="Control de Acceso Seguro (RBAC)", font=("Segoe UI", 8), bg=self.color_primary, fg="#A3E4D7").pack(pady=(2, 15))
+
+        # Tarjeta de Formulario
+        f_card = tk.Frame(dialog, bg="white", padx=25, pady=20)
+        f_card.pack(fill=tk.BOTH, expand=True, padx=20, pady=(0, 20))
+
+        tk.Label(f_card, text="Nombre de Usuario:", font=("Segoe UI", 9, "bold"), bg="white", fg="#1B365D").pack(anchor="w")
+        e_user = ttk.Entry(f_card, font=("Segoe UI", 10))
+        e_user.pack(fill=tk.X, pady=(4, 12))
+        e_user.insert(0, "admin")
+        e_user.focus()
+
+        tk.Label(f_card, text="Contraseña:", font=("Segoe UI", 9, "bold"), bg="white", fg="#1B365D").pack(anchor="w")
+        e_pwd = ttk.Entry(f_card, show="*", font=("Segoe UI", 10))
+        e_pwd.pack(fill=tk.X, pady=(4, 6))
+
+        lbl_error = tk.Label(f_card, text="", font=("Segoe UI", 8), bg="white", fg="#C0392B")
+        lbl_error.pack(anchor="w", pady=(2, 8))
+
+        def try_auth(event=None):
+            nonlocal login_success
+            u = e_user.get().strip()
+            p = e_pwd.get()
+            auth_res = self.auth_manager.authenticate(u, p)
+            if auth_res:
+                self.current_user = auth_res
+                self.current_role = auth_res.get("role", "Visor")
+                login_success = True
+                dialog.destroy()
+            else:
+                lbl_error.config(text="⚠️ Credenciales incorrectas o usuario inactivo.")
+                e_pwd.delete(0, tk.END)
+
+        e_user.bind("<Return>", lambda e: e_pwd.focus())
+        e_pwd.bind("<Return>", try_auth)
+
+        btn_login = tk.Button(
+            f_card,
+            text="🔓 Iniciar Sesión",
+            font=("Segoe UI", 10, "bold"),
+            bg=self.color_primary,
+            fg="white",
+            relief=tk.FLAT,
+            pady=6,
+            command=try_auth
+        )
+        btn_login.pack(fill=tk.X, pady=(6, 0))
+
+        dialog.wait_window()
+        return login_success
+
+    def _logout_and_relogin(self):
+        """Cierra la sesión actual y solicita nuevo inicio de sesión."""
+        if messagebox.askyesno("Cerrar Sesión", "¿Deseas cerrar la sesión actual y cambiar de usuario?"):
+            if self._prompt_login():
+                # Actualizar header
+                u_name = self.current_user.get("full_name", "Usuario")
+                u_role = self.current_role
+                self.user_badge.config(text=f"👤 {u_name} [{u_role}]")
+
+                # Actualizar visibilidad de botones admin
+                if self.current_role == "Administrador":
+                    self.btn_settings.pack(side=tk.RIGHT, padx=4, pady=12)
+                    self.btn_user_mgr.pack(side=tk.RIGHT, padx=4, pady=12)
+                else:
+                    self.btn_settings.pack_forget()
+                    self.btn_user_mgr.pack_forget()
+
+                self._apply_role_permissions()
+                self.refresh_all_data(show_msg=False)
+                messagebox.showinfo("Sesión Iniciada", f"Bienvenido/a {u_name}.\nPerfil activo: {u_role}")
+
+    def _apply_role_permissions(self):
+        """Aplica las restricciones según el perfil RBAC del usuario (Administrador, Operador, Visor)."""
+        is_visor = (self.current_role == "Visor")
+        is_operador = (self.current_role == "Operador")
+        is_admin = (self.current_role == "Administrador")
+
+        # 1. Botón Google Sheets
+        if hasattr(self, 'btn_gsheets'):
+            self.btn_gsheets.config(state=tk.NORMAL if not is_visor else tk.DISABLED)
+
+        # 2. Acciones del SOC
+        if hasattr(self, 'btn_sim'):
+            self.btn_sim.config(state=tk.NORMAL if not is_visor else tk.DISABLED)
+        if hasattr(self, 'btn_ingest'):
+            self.btn_ingest.config(state=tk.NORMAL if not is_visor else tk.DISABLED)
+        if hasattr(self, 'btn_syslog'):
+            self.btn_syslog.config(state=tk.NORMAL if not is_visor else tk.DISABLED)
+
+        # 3. Acciones de Riesgos
+        if hasattr(self, 'btn_save_risk'):
+            self.btn_save_risk.config(state=tk.NORMAL if is_admin else tk.DISABLED)
+        if hasattr(self, 'btn_del_risk'):
+            self.btn_del_risk.config(state=tk.NORMAL if is_admin else tk.DISABLED)
+
+        # 4. Acciones de Activos
+        if hasattr(self, 'btn_add_asset'):
+            self.btn_add_asset.config(state=tk.NORMAL if is_admin else tk.DISABLED)
+        if hasattr(self, 'btn_save_asset'):
+            self.btn_save_asset.config(state=tk.NORMAL if is_admin else tk.DISABLED)
+        if hasattr(self, 'btn_del_asset'):
+            self.btn_del_asset.config(state=tk.NORMAL if is_admin else tk.DISABLED)
+
+        # 5. Estado en el footer
+        if is_visor:
+            self.status_lbl.config(text="👁️ Modo Visor (Solo Lectura) - Modificación y Mitigación Deshabilitadas", fg="#7F8C8D")
+        elif is_operador:
+            self.status_lbl.config(text="🛡️ Modo Operador SOC - Gestión Operativa y Mitigación Habilitadas", fg="#2980B9")
+        else:
+            self.status_lbl.config(text="👑 Modo Administrador - Control Total del SGSI y SOC Habilitado", fg="#27AE60")
+
+    def _open_user_manager_modal(self):
+        """Abre el Mantenedor de Usuarios para el perfil Administrador."""
+        if self.current_role != "Administrador":
+            messagebox.showerror("Acceso Denegado", "Solo el perfil Administrador puede acceder a la Gestión de Usuarios.")
+            return
+
+        modal = tk.Toplevel(self)
+        modal.title("👥 Mantenedor de Usuarios y Perfiles RBAC")
+        modal.geometry("820x560")
+        modal.minsize(760, 500)
+        modal.configure(bg=self.color_bg)
+        modal.grab_set()
+
+        hdr = tk.Frame(modal, bg="#2980B9", padx=15, pady=10)
+        hdr.pack(fill=tk.X)
+        tk.Label(hdr, text="👥 Gestión de Usuarios y Control de Acceso (RBAC)", font=("Segoe UI", 12, "bold"), bg="#2980B9", fg="white").pack(anchor="w")
+        tk.Label(hdr, text="Administración de credenciales seguras (PBKDF2-SHA256) y asignación de roles", font=("Segoe UI", 8), bg="#2980B9", fg="#D6EAF8").pack(anchor="w")
+
+        body = tk.Frame(modal, bg=self.color_bg, padx=15, pady=10)
+        body.pack(fill=tk.BOTH, expand=True)
+
+        # Tabla de Usuarios
+        cols = ("Usuario", "Nombre Completo", "Correo", "Rol", "Estado", "Último Acceso")
+        tree = ttk.Treeview(body, columns=cols, show="headings", height=8)
+        tree.heading("Usuario", text="Usuario")
+        tree.heading("Nombre Completo", text="Nombre Completo")
+        tree.heading("Correo", text="Correo Electrónico")
+        tree.heading("Rol", text="Rol / Perfil")
+        tree.heading("Estado", text="Estado")
+        tree.heading("Último Acceso", text="Último Acceso")
+
+        tree.column("Usuario", width=90, anchor="center")
+        tree.column("Nombre Completo", width=160)
+        tree.column("Correo", width=180)
+        tree.column("Rol", width=100, anchor="center")
+        tree.column("Estado", width=70, anchor="center")
+        tree.column("Último Acceso", width=130, anchor="center")
+
+        tree.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+
+        def reload_table():
+            for it in tree.get_children():
+                tree.delete(it)
+            for u in self.auth_manager.get_all_users():
+                st = "Activo" if u.get("active", True) else "Inactivo"
+                tree.insert("", tk.END, values=(
+                    u.get("username"),
+                    u.get("full_name"),
+                    u.get("email"),
+                    u.get("role"),
+                    st,
+                    u.get("last_login")
+                ))
+
+        reload_table()
+
+        # Formulario de Edición / Creación
+        f_form = tk.LabelFrame(body, text=" Datos del Usuario ", font=("Segoe UI", 9, "bold"), bg=self.color_card, padx=10, pady=8)
+        f_form.pack(fill=tk.X)
+
+        r1 = tk.Frame(f_form, bg=self.color_card)
+        r1.pack(fill=tk.X, pady=2)
+        tk.Label(r1, text="Usuario:", font=("Segoe UI", 8, "bold"), bg=self.color_card, width=12, anchor="w").pack(side=tk.LEFT)
+        e_u = ttk.Entry(r1, width=16, font=("Segoe UI", 8))
+        e_u.pack(side=tk.LEFT, padx=4)
+
+        tk.Label(r1, text="Nombre:", font=("Segoe UI", 8, "bold"), bg=self.color_card, width=10, anchor="w").pack(side=tk.LEFT, padx=(8, 0))
+        e_fn = ttk.Entry(r1, width=24, font=("Segoe UI", 8))
+        e_fn.pack(side=tk.LEFT, padx=4)
+
+        tk.Label(r1, text="Rol:", font=("Segoe UI", 8, "bold"), bg=self.color_card, width=6, anchor="w").pack(side=tk.LEFT, padx=(8, 0))
+        cb_r = ttk.Combobox(r1, values=AuthManager.ROLES, state="readonly", width=14, font=("Segoe UI", 8))
+        cb_r.set("Operador")
+        cb_r.pack(side=tk.LEFT, padx=4)
+
+        r2 = tk.Frame(f_form, bg=self.color_card)
+        r2.pack(fill=tk.X, pady=4)
+        tk.Label(r2, text="Correo:", font=("Segoe UI", 8, "bold"), bg=self.color_card, width=12, anchor="w").pack(side=tk.LEFT)
+        e_em = ttk.Entry(r2, width=28, font=("Segoe UI", 8))
+        e_em.pack(side=tk.LEFT, padx=4)
+
+        tk.Label(r2, text="Contraseña:", font=("Segoe UI", 8, "bold"), bg=self.color_card, width=10, anchor="w").pack(side=tk.LEFT, padx=(8, 0))
+        e_pw = ttk.Entry(r2, show="*", width=18, font=("Segoe UI", 8))
+        e_pw.pack(side=tk.LEFT, padx=4)
+
+        var_act = tk.BooleanVar(value=True)
+        chk_act = tk.Checkbutton(r2, text="Activo", variable=var_act, font=("Segoe UI", 8, "bold"), bg=self.color_card)
+        chk_act.pack(side=tk.LEFT, padx=8)
+
+        def on_tree_select(event):
+            sel = tree.selection()
+            if sel:
+                vals = tree.item(sel[0])["values"]
+                e_u.delete(0, tk.END)
+                e_u.insert(0, vals[0])
+                e_fn.delete(0, tk.END)
+                e_fn.insert(0, vals[1])
+                e_em.delete(0, tk.END)
+                e_em.insert(0, vals[2])
+                cb_r.set(vals[3])
+                var_act.set(vals[4] == "Activo")
+                e_pw.delete(0, tk.END)
+
+        tree.bind("<<TreeviewSelect>>", on_tree_select)
+
+        # Botones de Acción
+        f_btns = tk.Frame(body, bg=self.color_bg, pady=8)
+        f_btns.pack(fill=tk.X)
+
+        def do_create():
+            u = e_u.get().strip()
+            fn = e_fn.get().strip()
+            em = e_em.get().strip()
+            r = cb_r.get()
+            pw = e_pw.get()
+            ok, msg = self.auth_manager.create_user(u, fn, em, r, pw)
+            if ok:
+                reload_table()
+                messagebox.showinfo("Éxito", msg, parent=modal)
+            else:
+                messagebox.showerror("Error", msg, parent=modal)
+
+        def do_update():
+            u = e_u.get().strip()
+            fn = e_fn.get().strip()
+            em = e_em.get().strip()
+            r = cb_r.get()
+            act = var_act.get()
+            pw = e_pw.get() if e_pw.get() else None
+            ok, msg = self.auth_manager.update_user(u, fn, em, r, act, pw)
+            if ok:
+                reload_table()
+                messagebox.showinfo("Éxito", msg, parent=modal)
+            else:
+                messagebox.showerror("Error", msg, parent=modal)
+
+        def do_delete():
+            u = e_u.get().strip()
+            if not u:
+                return
+            if messagebox.askyesno("Confirmar Eliminación", f"¿Estás seguro de eliminar al usuario '{u}'?", parent=modal):
+                ok, msg = self.auth_manager.delete_user(u)
+                if ok:
+                    reload_table()
+                    messagebox.showinfo("Éxito", msg, parent=modal)
+                else:
+                    messagebox.showerror("Error", msg, parent=modal)
+
+        tk.Button(f_btns, text="➕ Crear Usuario", font=("Segoe UI", 9, "bold"), bg="#27AE60", fg="white", relief=tk.FLAT, padx=10, pady=4, command=do_create).pack(side=tk.LEFT, padx=4)
+        tk.Button(f_btns, text="💾 Guardar Cambios", font=("Segoe UI", 9, "bold"), bg="#2980B9", fg="white", relief=tk.FLAT, padx=10, pady=4, command=do_update).pack(side=tk.LEFT, padx=4)
+        tk.Button(f_btns, text="🗑️ Eliminar Usuario", font=("Segoe UI", 9), bg="#C0392B", fg="white", relief=tk.FLAT, padx=10, pady=4, command=do_delete).pack(side=tk.LEFT, padx=4)
+        tk.Button(f_btns, text="Cerrar", font=("Segoe UI", 9), bg="#BDC3C7", fg="#2C3E50", relief=tk.FLAT, padx=10, pady=4, command=modal.destroy).pack(side=tk.RIGHT)
+
+    def _open_settings_modal(self):
+        """Abre el formulario de parametrización institucional (Settings)."""
+        if self.current_role != "Administrador":
+            messagebox.showerror("Acceso Denegado", "Solo el perfil Administrador puede modificar los Ajustes del Sistema.")
+            return
+
+        modal = tk.Toplevel(self)
+        modal.title("⚙️ Configuración y Parametrización Institucional")
+        modal.geometry("640x580")
+        modal.minsize(600, 520)
+        modal.configure(bg=self.color_bg)
+        modal.grab_set()
+
+        hdr = tk.Frame(modal, bg="#7D3C98", padx=15, pady=10)
+        hdr.pack(fill=tk.X)
+        tk.Label(hdr, text="⚙️ Parametrización del Servicio / Empresa", font=("Segoe UI", 12, "bold"), bg="#7D3C98", fg="white").pack(anchor="w")
+        tk.Label(hdr, text="Ajuste de datos de la organización, Oficial de Seguridad (CISO), puertos y enlaces de IA", font=("Segoe UI", 8), bg="#7D3C98", fg="#E8DAEF").pack(anchor="w")
+
+        f_body = tk.Frame(modal, bg=self.color_card, padx=20, pady=15)
+        f_body.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
+
+        s = self.settings_manager.get_settings()
+
+        def make_field(parent, label_text, default_val):
+            r = tk.Frame(parent, bg=self.color_card)
+            r.pack(fill=tk.X, pady=4)
+            tk.Label(r, text=label_text, font=("Segoe UI", 9, "bold"), bg=self.color_card, width=25, anchor="w").pack(side=tk.LEFT)
+            entry = ttk.Entry(r, font=("Segoe UI", 9))
+            entry.insert(0, str(default_val))
+            entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+            return entry
+
+        e_org = make_field(f_body, "Nombre Institución/Empresa:", s.get("org_name", ""))
+        e_code = make_field(f_body, "Sigla / Código:", s.get("org_code", ""))
+        e_period = make_field(f_body, "Año / Período Framework:", s.get("framework_period", "2026"))
+        e_ciso = make_field(f_body, "Nombre CISO / Oficial:", s.get("ciso_name", ""))
+        e_email = make_field(f_body, "Correo Notificaciones CISO:", s.get("ciso_email", ""))
+        e_phone = make_field(f_body, "Teléfono Institucional:", s.get("ciso_phone", ""))
+        e_addr = make_field(f_body, "Dirección Principal:", s.get("org_address", ""))
+        e_port_live = make_field(f_body, "Puerto Dashboard Live (HTTP):", s.get("live_server_port", "8080"))
+        e_port_syslog = make_field(f_body, "Puerto Receptor Syslog (UDP):", s.get("syslog_port", "1514"))
+        e_ollama = make_field(f_body, "Servidor IA Local (Ollama):", s.get("ollama_url", "http://localhost:11434"))
+
+        f_btns = tk.Frame(modal, bg=self.color_bg, padx=15, pady=10)
+        f_btns.pack(fill=tk.X, side=tk.BOTTOM)
+
+        def save_all():
+            new_s = {
+                "org_name": e_org.get().strip(),
+                "org_code": e_code.get().strip(),
+                "framework_period": e_period.get().strip(),
+                "ciso_name": e_ciso.get().strip(),
+                "ciso_email": e_email.get().strip(),
+                "ciso_phone": e_phone.get().strip(),
+                "org_address": e_addr.get().strip(),
+                "live_server_port": int(e_port_live.get().strip() or 8080),
+                "syslog_port": int(e_port_syslog.get().strip() or 1514),
+                "ollama_url": e_ollama.get().strip()
+            }
+            if self.settings_manager.save_settings(new_s):
+                # Actualizar títulos de ventana y header
+                self.title(f"🛡️ SGSI & SOC Framework - {new_s['org_name']} ({new_s['framework_period']})")
+                self.title_lbl.config(text=f"🏛️ {new_s['org_name']} | SGSI & SOC {new_s['framework_period']}")
+                messagebox.showinfo("Configuración Guardada", "Los parámetros institucionales se han guardado y aplicado con éxito.", parent=modal)
+                modal.destroy()
+            else:
+                messagebox.showerror("Error", "No se pudo guardar la configuración.", parent=modal)
+
+        tk.Button(f_btns, text="💾 Guardar y Aplicar", font=("Segoe UI", 10, "bold"), bg="#27AE60", fg="white", relief=tk.FLAT, padx=15, pady=5, command=save_all).pack(side=tk.RIGHT, padx=5)
+        tk.Button(f_btns, text="Cancelar", font=("Segoe UI", 9), bg="#BDC3C7", fg="#2C3E50", relief=tk.FLAT, padx=12, pady=5, command=modal.destroy).pack(side=tk.RIGHT)
 
     def action_open_ai_assistant_modal(self, target_incident=None):
         """Abre la consola del Asistente de IA Open Source del SOC para triage, SOAR y reportes CSIRT."""

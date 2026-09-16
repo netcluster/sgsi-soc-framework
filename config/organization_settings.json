@@ -1,0 +1,14 @@
+{
+  "org_name": "Servicio Nacional de Migraciones",
+  "org_code": "SERMIG",
+  "framework_period": "2026",
+  "ciso_name": "Ricardo Alfaro Jiménez",
+  "ciso_email": "seguridad.informacion@serviciomigraciones.cl",
+  "ciso_phone": "+56 2 2550 0000",
+  "org_address": "San Antonio 580, Santiago, Chile",
+  "live_server_port": 8080,
+  "syslog_port": 1514,
+  "ollama_url": "http://localhost:11434",
+  "default_ai_model": "llama3.2",
+  "gsheets_webhook_url": ""
+}

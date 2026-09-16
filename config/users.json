@@ -1,0 +1,35 @@
+{
+  "admin": {
+    "username": "admin",
+    "full_name": "Administrador Principal CISO",
+    "email": "ciso@serviciomigraciones.cl",
+    "role": "Administrador",
+    "password_hash": "25dc8d730d0e0cdf51508e144c8cfba19ad7d3334987405e8d831d82459fdbcf",
+    "salt": "61436e5079ac3904884c4439984d16b4",
+    "active": true,
+    "created_at": "2026-09-16 13:59:00",
+    "last_login": "2026-09-16 13:59:13"
+  },
+  "operador": {
+    "username": "operador",
+    "full_name": "Analista de Operaciones SOC L1",
+    "email": "soc.analista@serviciomigraciones.cl",
+    "role": "Operador",
+    "password_hash": "d305d459b65f7191a213cbf28b901ac0746732c2dba541791a15fdafcbc460c3",
+    "salt": "3268f195b0eb78f38ccfcb1f3a792af7",
+    "active": true,
+    "created_at": "2026-09-16 13:59:00",
+    "last_login": "2026-09-16 13:59:13"
+  },
+  "visor": {
+    "username": "visor",
+    "full_name": "Auditor Interno / Dirección",
+    "email": "auditoria@serviciomigraciones.cl",
+    "role": "Visor",
+    "password_hash": "3263ecdca2b475b19f43021f75c0d7c3ab122ec19f90588c90791e4842f5ae7a",
+    "salt": "1865caaf2f5bcf5b2ce08082e4dc2897",
+    "active": true,
+    "created_at": "2026-09-16 13:59:01",
+    "last_login": "-"
+  }
+}
